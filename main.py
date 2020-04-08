@@ -1,5 +1,6 @@
 import struct
 import re
+import os
 
 
 def Check_If_Type_Exits(TypeName, SystemCatalog):
@@ -27,37 +28,10 @@ class SystemCatalog:
         try:
             self.SystemCatalogFile = open("SystemCatalog", "rb")
             print("SystemCatalogFile is opened successsively")
-            filesize = struct.unpack(
-                "i", self.SystemCatalogFile.read(4))[0]
-            self.NumberOfTypes = filesize
-
-            print("NUmber Of Type is: ", filesize)
-            for i in range(filesize):
-                tempTypeName = self.SystemCatalogFile.read(16).decode("utf-8")
-                tempTypeName = re.sub(" ", "", tempTypeName)
-
-                print("tempTypeName", tempTypeName)
-                tempFileNo = struct.unpack(
-                    "b", self.SystemCatalogFile.read(1))[0]
-                print("tempFileNo", tempFileNo)
-                tempNumberOfFields = struct.unpack(
-                    "b", self.SystemCatalogFile.read(1))[0]
-                print("tempNumberOfFields", tempNumberOfFields)
-                tempfields = []
-                for b in range(tempNumberOfFields):
-                    print("girdik tek tek toplıcaz")
-                    tempx = self.SystemCatalogFile.read(16).decode("utf-8")
-                    tempfields.append(tempx)
-                print(tempfields)
-                T = Type(tempTypeName, tempFileNo,
-                         tempNumberOfFields, tempfields)
-                self.Types.append(T)
-
+            self.readCatalogFile()
         except FileNotFoundError:
             print("There is no such a file...")
             self.createCatalogFile()
-        except Exception as e:
-            print(e)
 
     def __enter__(self):
         return self
@@ -73,6 +47,32 @@ class SystemCatalog:
 
     def readCatalogFile(self):
         print("SystemCatalogFile is being read...")
+        try:
+            self.NumberOfTypes = struct.unpack(
+                "i", self.SystemCatalogFile.read(4))[0]
+
+            for i in range(self.NumberOfTypes):
+                tempTypeName = self.SystemCatalogFile.read(16).decode("utf-8")
+                tempTypeName = re.sub(" ", "", tempTypeName)
+
+                tempFileNo = struct.unpack(
+                    "b", self.SystemCatalogFile.read(1))[0]
+
+                tempNumberOfFields = struct.unpack(
+                    "b", self.SystemCatalogFile.read(1))[0]
+
+                tempfields = []
+                for b in range(tempNumberOfFields):
+
+                    tempx = self.SystemCatalogFile.read(16).decode("utf-8")
+                    tempfields.append(tempx)
+
+                T = Type(tempTypeName, tempFileNo,
+                         tempNumberOfFields, tempfields)
+                self.Types.append(T)
+
+        except Exception as e:
+            print(e)
 
     def addNewType(self, Type):
         self.NumberOfTypes += 1
@@ -91,8 +91,8 @@ class SystemCatalog:
         self.SystemCatalogFile.write(struct.pack("i", self.NumberOfTypes))
 
         if self.NumberOfTypes > 0:
-            print("in writing back we have", self.NumberOfTypes)
-            print("Types lenght is :", len(self.Types))
+            #print("in writing back we have", self.NumberOfTypes)
+            #print("Types lenght is :", len(self.Types))
             for i in range(self.NumberOfTypes):
                 self.Types[i].TypeName = self.tamamla(self.Types[i].TypeName)
                 self.SystemCatalogFile.write(
@@ -105,8 +105,7 @@ class SystemCatalog:
                 for k in range(self.Types[i].NumberOfFields):
                     self.Types[i].Fields_Names[k] = self.tamamla(
                         self.Types[i].Fields_Names[k])
-                    print("returned type fields is :",
-                          self.Types[i].Fields_Names[k])
+                    #print("returned type fields is :",self.Types[i].Fields_Names[k])
                     self.SystemCatalogFile.write(
                         self.Types[i].Fields_Names[k].encode("utf-8"))
         self.SystemCatalogFile.close()
@@ -137,12 +136,22 @@ class DLL:
         self.SystemCatalog = SystemCatalog
 
     def Create_Type(self, TypeName, N, Fields_Names):
-        # Check_If_Type_Exits(TypeName, self.SystemCatalog)
+        Check_If_Type_Exits(TypeName, self.SystemCatalog)
         print("Creating Type...")
+        filename = "./indexFiles/"+str(TypeName)+"index"
+        f = open(filename, "w")
+        f.write("ismet sarı")
+        f.close()
         newType = Type(TypeName, 0, N, Fields_Names)
         self.SystemCatalog.addNewType(newType)
 
+    def List_All_Types(self):
+        for i in range(self.SystemCatalog.NumberOfTypes):
+            x = self.SystemCatalog.Types[i].TypeName
+            print(re.sub(" ", "", x))
 
+
+os.mkdir("indexFiles")
 with SystemCatalog() as f:
     r2 = DLL(f)
 
@@ -157,7 +166,9 @@ with SystemCatalog() as f:
 
 with SystemCatalog() as f:
 
-    f.readCatalogFile()
+    r2 = DLL(f)
+
+    r2.List_All_Types()
 
 """
 with SystemCatalog() as f:
