@@ -4,15 +4,40 @@ import os
 
 
 def Check_If_Type_Exits(TypeName, SystemCatalog):
-    print("Check_If_Type_Exits...")
+    print("Checking If Type Exits...")
+    The_Type = None
     if SystemCatalog.NumberOfTypes > 0:
         for i in range(SystemCatalog.NumberOfTypes):
-            if SystemCatalog.Types[i] == TypeName:
-                return True
+            if SystemCatalog.Types[i].TypeName == TypeName:
+                print("The Type is found!!! ")
+                return SystemCatalog.Types[i]
     else:
         print("There is no registered types.")
 
-    return False
+    return The_Type
+
+
+def record_Control(TypeName, NumberOfFields, PrimaryKey, SystemCatalog):
+    if Check_If_Type_Exits(TypeName, SystemCatalog) == None:
+        print("The File you want to add a record in is not found!!!")
+        os._exit(0)
+    else:
+        if NumberOfFields > 64 or NumberOfFields < 3:
+            print("The number of Fields are not in desired interval")
+        else:
+            path = "./indexFiles/"+str(TypeName)+"index"
+            indexFile = open(path, "rb")
+            CurrentNumberOfRecords = struct.unpack(
+                "i", indexFile.read(4))[0]
+            MaxNumberOfRecordsPerFile = struct.unpack(
+                "i", indexFile.read(4))[0]
+            PeekNumberOfRecords = 256*MaxNumberOfRecordsPerFile
+            if CurrentNumberOfRecords == PeekNumberOfRecords:
+                print("The system cannot accept one more record!!!")
+            else:
+                print("checking if the given Primary Key is already being used...")
+                for i in SystemCatalog.indexFiles:
+                    if i.
 
 
 class FieldsAreNotValid(Exception):
@@ -23,6 +48,7 @@ class FieldsAreNotValid(Exception):
 class SystemCatalog:
     NumberOfTypes = 0
     Types = []
+    indexFiles = []
 
     def __init__(self):
         try:
@@ -81,7 +107,7 @@ class SystemCatalog:
     def readindexFiles(self):
         print("The All indexFiles are being read")
         if self.NumberOfTypes > 0:
-            for i in Types:
+            for i in self.Types:
                 indexFile = open(str(i.TypeName)+"index")
 
     def addNewType(self, Type):
@@ -134,7 +160,7 @@ class Type:
         self.Fields_Names = Fields_Names
 
     def control(self):
-        if(self.NumberOfFields > 64) or len(self.Fields_Names) != self.NumberOfFields:
+        if(self.NumberOfFields > 64) or(len(self.TypeName) > 16)(len(self.Fields_Names) != self.NumberOfFields):
             raise FieldsAreNotValid(
                 "Number of fields are not in desired interval")
 
@@ -156,25 +182,27 @@ class DLL:
         self.SystemCatalog = SystemCatalog
 
     def Create_Type(self, TypeName, N, Fields_Names):
-        Check_If_Type_Exits(TypeName, self.SystemCatalog)
-        print("Type is available to create\nCreating Type...")
-        filename = "./indexFiles/"+str(TypeName)+"index"
-        f = open(filename, "w")
-        f.write("ismet sarı")
-        f.close()
-        newType = Type(TypeName, 0, N, Fields_Names)
-        self.SystemCatalog.addNewType(newType)
+        if Check_If_Type_Exits(TypeName, self.SystemCatalog) == None:
+            print("Type is available to create\nCreating Type...")
+            filename = "./indexFiles/"+str(TypeName)+"index"
+            indexFile = open(filename, "w")
+            maxNoofRecords = 2048/(4*N)
+            indexFile.write(struct.pack("i", 0))
+            indexFile.write(struct.pack("i", maxNoofRecords))
+            indexFile.close()
+            newType = Type(TypeName, 0, N, Fields_Names)
+            self.SystemCatalog.addNewType(newType)
 
     def Delete_Type(self, TypeName):
-        Check_If_Type_Exits(TypeName, self.SystemCatalog)
-        print("Type is found.\nDeleting Type...")
-        filename = "./indexFiles/"+str(TypeName)+"index"
-        os.remove(filename)
+        if Check_If_Type_Exits(TypeName, self.SystemCatalog) != None:
+            print("Type is found.\nDeleting Type...")
+            filename = "./indexFiles/"+str(TypeName)+"index"
+            os.remove(filename)
 
-        for i in self.SystemCatalog.Types:
-            if i.TypeName == TypeName:
-                if i.NumberOfFiles > 0:
-                    print("deleting the file")
+            for i in self.SystemCatalog.Types:
+                if i.TypeName == TypeName:
+                    if i.NumberOfFiles > 0:
+                        print("deleting the file")
 
     def List_All_Types(self):
         for i in range(self.SystemCatalog.NumberOfTypes):
