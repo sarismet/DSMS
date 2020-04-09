@@ -29,6 +29,8 @@ class SystemCatalog:
             self.SystemCatalogFile = open("SystemCatalog", "rb")
             print("SystemCatalogFile is opened successsively")
             self.readCatalogFile()
+            # self.readindexFiles()
+
         except FileNotFoundError:
             print("There is no such a file...")
             self.createCatalogFile()
@@ -70,9 +72,17 @@ class SystemCatalog:
                 T = Type(tempTypeName, tempFileNo,
                          tempNumberOfFields, tempfields)
                 self.Types.append(T)
+            print("Compleated")
 
         except Exception as e:
             print(e)
+            os._exit(0)
+
+    def readindexFiles(self):
+        print("The All indexFiles are being read")
+        if self.NumberOfTypes > 0:
+            for i in Types:
+                indexFile = open(str(i.TypeName)+"index")
 
     def addNewType(self, Type):
         self.NumberOfTypes += 1
@@ -105,7 +115,6 @@ class SystemCatalog:
                 for k in range(self.Types[i].NumberOfFields):
                     self.Types[i].Fields_Names[k] = self.tamamla(
                         self.Types[i].Fields_Names[k])
-                    #print("returned type fields is :",self.Types[i].Fields_Names[k])
                     self.SystemCatalogFile.write(
                         self.Types[i].Fields_Names[k].encode("utf-8"))
         self.SystemCatalogFile.close()
@@ -130,6 +139,17 @@ class Type:
                 "Number of fields are not in desired interval")
 
 
+class indexFile:
+    Number_OF_Records = 0
+    Max_Number_OF_Records_Per_File = 0
+    Records = []
+
+    def __init__(self, Number_OF_Records, Max_Number_OF_Records_Per_File, Records):
+        self.Number_OF_Records = Number_OF_Records
+        self.Max_Number_OF_Records_Per_File = Max_Number_OF_Records_Per_File
+        self.Records = Records
+
+
 class DLL:
 
     def __init__(self, SystemCatalog):
@@ -137,7 +157,7 @@ class DLL:
 
     def Create_Type(self, TypeName, N, Fields_Names):
         Check_If_Type_Exits(TypeName, self.SystemCatalog)
-        print("Creating Type...")
+        print("Type is available to create\nCreating Type...")
         filename = "./indexFiles/"+str(TypeName)+"index"
         f = open(filename, "w")
         f.write("ismet sarı")
@@ -145,13 +165,34 @@ class DLL:
         newType = Type(TypeName, 0, N, Fields_Names)
         self.SystemCatalog.addNewType(newType)
 
+    def Delete_Type(self, TypeName):
+        Check_If_Type_Exits(TypeName, self.SystemCatalog)
+        print("Type is found.\nDeleting Type...")
+        filename = "./indexFiles/"+str(TypeName)+"index"
+        os.remove(filename)
+
+        for i in self.SystemCatalog.Types:
+            if i.TypeName == TypeName:
+                if i.NumberOfFiles > 0:
+                    print("deleting the file")
+
     def List_All_Types(self):
         for i in range(self.SystemCatalog.NumberOfTypes):
             x = self.SystemCatalog.Types[i].TypeName
             print(re.sub(" ", "", x))
 
 
-os.mkdir("indexFiles")
+class DML:
+
+    def __init__(self, SystemCatalog):
+        self.SystemCatalog = SystemCatalog
+
+    def Create_Record(self, TypeName, Fields_Values):
+        print("Creating Record")
+
+
+if not os.path.exists("indexFiles"):
+    os.mkdir("indexFiles")
 with SystemCatalog() as f:
     r2 = DLL(f)
 
@@ -169,26 +210,3 @@ with SystemCatalog() as f:
     r2 = DLL(f)
 
     r2.List_All_Types()
-
-"""
-with SystemCatalog() as f:
-
-    f.readCatalogFile()
-
-
-
-
-
-def write(TypeName, No, Lists):
-    f.write(TypeName.encode("utf-8"))
-    f.write(bytes([No]))
-    for i in range(len(Lists)):
-        f.write(Lists[i].encode("utf-8"))
-
-
-f = open("file", "wb")
-f.write(bytes([12]))
-
-write("Humans", 3, ["yas", "boy", "hız"])
-f.close()
-"""
