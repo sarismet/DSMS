@@ -36,8 +36,11 @@ def record_Control(TypeName, NumberOfFields, PrimaryKey, SystemCatalog):
                 print("The system cannot accept one more record!!!")
             else:
                 print("checking if the given Primary Key is already being used...")
-                for i in SystemCatalog.indexFiles:
-                    if i.
+                TheindexFile = SystemCatalog.indexFiles[TypeName]
+                for i in TheindexFile.Records:
+                    if i.PrimaryKey == PrimaryKey:
+                        print("The primary key is alread being used!!!")
+                        os._exit(0)
 
 
 class FieldsAreNotValid(Exception):
@@ -160,7 +163,7 @@ class Type:
         self.Fields_Names = Fields_Names
 
     def control(self):
-        if(self.NumberOfFields > 64) or(len(self.TypeName) > 16)(len(self.Fields_Names) != self.NumberOfFields):
+        if(self.NumberOfFields > 64) or(len(self.TypeName) > 16)or(len(self.Fields_Names) != self.NumberOfFields):
             raise FieldsAreNotValid(
                 "Number of fields are not in desired interval")
 
@@ -185,8 +188,8 @@ class DLL:
         if Check_If_Type_Exits(TypeName, self.SystemCatalog) == None:
             print("Type is available to create\nCreating Type...")
             filename = "./indexFiles/"+str(TypeName)+"index"
-            indexFile = open(filename, "w")
-            maxNoofRecords = 2048/(4*N)
+            indexFile = open(filename, "wb")
+            maxNoofRecords = int(2048/(4*N))
             indexFile.write(struct.pack("i", 0))
             indexFile.write(struct.pack("i", maxNoofRecords))
             indexFile.close()
@@ -227,14 +230,5 @@ with SystemCatalog() as f:
     r2.Create_Type("Humans", 3, ["age", "len", "spe"])  # 16
     r2.Create_Type("Cats", 4, ["age", "len", "spe", "smell"])  # 18
 
-with SystemCatalog() as f:
-    r2 = DLL(f)
-
-    r2.Create_Type("Aliens", 3, ["ageA", "lenA", "speA"])  # 16
-    r2.Create_Type("CatsA", 4, ["ageA", "lenA", "speA", "smellA"])  # 18
-
-with SystemCatalog() as f:
-
-    r2 = DLL(f)
-
-    r2.List_All_Types()
+with SystemCatalog() as fx:
+    print(len(fx.Types))
