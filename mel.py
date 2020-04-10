@@ -21,6 +21,56 @@ def Check_If_Type_Exits(TypeName, SystemCatalog):
     return None
 
 
+def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
+    index = 0
+    RID, FID, PID = 1, 1, 1
+    print(TheindexFile.Records)
+    for RecordN in TheindexFile.Records:
+
+        if RecordN.PrimaryKey > PrimaryKey:
+            RID = RecordN.RecordID
+            FID = RecordN.FileID
+            PID = RecordN.PageID
+            break
+        index += 1
+    if RID == int(TheindexFile.Max_Number_OF_Records_Per_File/256):
+        RID = 1
+        PID += 1
+    if PID == 256:
+        PID = 1
+        FID += 1
+    newRecord = Record(FID, PID, RID, PrimaryKey)
+    TheindexFile.Records.insert(index, newRecord)
+    TheindexFile.Number_OF_Records += 1
+    return(index, newRecord)
+
+
+class Type:
+
+    def __init__(self, TypeName, NumberOfFiles, NumberOfFields, Fields_Names):
+
+        self.TypeName = TypeName
+        self.NumberOfFiles = NumberOfFiles
+        self.NumberOfFields = NumberOfFields
+        self.Fields_Names = Fields_Names
+
+
+class Record:
+    def __init__(self, FileID, PageID, RecordID, PrimaryKey):
+        self.FileID = FileID
+        self.PageID = PageID
+        self.RecordID = RecordID
+        self.PrimaryKey = PrimaryKey
+
+
+class classindexFile:
+
+    def __init__(self, Number_OF_Records, Max_Number_OF_Records_Per_File, Records):
+        self.Number_OF_Records = Number_OF_Records
+        self.Max_Number_OF_Records_Per_File = Max_Number_OF_Records_Per_File
+        self.Records = Records
+
+
 class SystemCatalog:
 
     def __init__(self):
@@ -85,35 +135,44 @@ class SystemCatalog:
     def readindexFiles(self):
         print("All indexFiles are being read...")
         for Type in self.Types:
-            filename = "./indexFiles/"+str(Type.TypeName)+"index"
-            TindexFile = open(filename, "rb")
-            NumberOfRecords = struct.unpack(
-                "i", TindexFile.read(4))[0]
-            NumberOfRecordsPerFile = struct.unpack(
-                "i", TindexFile.read(4))[0]
-            print("In related indexFile we found")
-            print("The Number Of Records ", NumberOfRecords)
-            print("The Number Of Records Per File", NumberOfRecordsPerFile)
-            Temp_Records_Array = []
-            for i in range(NumberOfRecords):
-                FileID = struct.unpack(
-                    "b", self.SystemCatalogFile.read(1))[0]
-                PageID = struct.unpack(
-                    "b", self.SystemCatalogFile.read(1))[0]
-                RecordID = struct.unpack(
-                    "b", self.SystemCatalogFile.read(1))[0]
-                PrimaryKey = struct.unpack(
-                    "i", self.SystemCatalogFile.read(4))[0]
-                Temp_Records_Array.append(
-                    Record(FileID, PageID, RecordID, PrimaryKey))
+            try:
+                filepath = "./indexFiles/"+str(Type.TypeName)+"index"
+                print(filepath)
+                TindexFile = open(filepath, "rb")
+                NumberOfRecords = struct.unpack(
+                    "i", TindexFile.read(4))[0]
+                NumberOfRecordsPerFile = struct.unpack(
+                    "i", TindexFile.read(4))[0]
+                print("In related indexFile we found")
+                print("The Number Of Records ", NumberOfRecords)
+                print("The Number Of Records Per File", NumberOfRecordsPerFile)
+                Temp_Records_Array = []
+                for i in range(NumberOfRecords):
+                    FileID = struct.unpack(
+                        "b", TindexFile.read(1))[0]
+                    PageID = struct.unpack(
+                        "b", TindexFile.read(1))[0]
+                    RecordID = struct.unpack(
+                        "b", TindexFile.read(1))[0]
+                    PrimaryKey = struct.unpack(
+                        "i", TindexFile.read(4))[0]
+                    Temp_Records_Array.append(
+                        Record(int(FileID), int(PageID), int(RecordID), int(PrimaryKey)))
 
-            TI = indexFile(NumberOfRecords, NumberOfRecordsPerFile,
-                           Temp_Records_Array)
-            self.indexFiles.update({Type: TI})
-            TindexFile.close()
+                TI = classindexFile(NumberOfRecords, NumberOfRecordsPerFile,
+                                    Temp_Records_Array)
+                print(
+                    "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                a = TI.Records
+                self.indexFiles.update({Type.TypeName: TI})
+                TindexFile.close()
+            except Exception as e:
+                print(e)
 
     def writebackindexFiles(self):
         print("All indexFiles are being written back...")
+        for x in self.indexFiles:
+            print("KEYS,", self.indexFiles[x])
         for key in self.indexFiles:
             filename = "./indexFiles/"+str(key)+"index"
             TindexFile = open(filename, "wb")
@@ -121,14 +180,16 @@ class SystemCatalog:
                 "i", self.indexFiles[key].Number_OF_Records))
             TindexFile.write(struct.pack(
                 "i", self.indexFiles[key].Max_Number_OF_Records_Per_File))
-            for record in self.indexFiles[key].Records:
-                TindexFile.write(
-                    bytes([record.FileID]))
-                TindexFile.write(
-                    bytes([record.PageID]))
-                TindexFile.write(
-                    bytes([record.RecordID]))
-                TindexFile.write(struct.pack("i", record.PrimaryKey))
+            if len(self.indexFiles[key].Records) > 0:
+                for record in self.indexFiles[key].Records:
+                    print("AAAAAAAAAAAAAAAAAAAAAAA", record.FileID)
+                    TindexFile.write(
+                        bytes([int(record.FileID)]))
+                    TindexFile.write(
+                        bytes([int(record.PageID)]))
+                    TindexFile.write(
+                        bytes([int(record.RecordID)]))
+                    TindexFile.write(struct.pack("i", record.PrimaryKey))
 
     def addNewType(self, Type):
         print("Increasing Number Of Files...")
@@ -142,50 +203,24 @@ class SystemCatalog:
         return TypeName
 
     def writeback(self):
-        if self.NumberOfTypes > 0:
-            print("writing back on System Catalog File...")
-            self.SystemCatalogFile = open("SystemCatalog", "wb")
-            self.SystemCatalogFile.write(struct.pack("i", self.NumberOfTypes))
-            for Type in self.Types:
-                TypeName = self.complate(Type.TypeName)
-                self.SystemCatalogFile.write(
-                    TypeName.encode("utf-8"))
-                self.SystemCatalogFile.write(
-                    bytes([Type.NumberOfFiles]))
-                self.SystemCatalogFile.write(
-                    bytes([Type.NumberOfFields]))
 
-                for i in range(Type.NumberOfFields):
-                    FN = self.complate(Type.Fields_Names[i])
-                    self.SystemCatalogFile.write(FN.encode("utf-8"))
+        print("writing back on System Catalog File...")
+        self.SystemCatalogFile = open("SystemCatalog", "wb")
+        self.SystemCatalogFile.write(struct.pack("i", self.NumberOfTypes))
+        for Type in self.Types:
+            TypeName = self.complate(Type.TypeName)
+            self.SystemCatalogFile.write(
+                TypeName.encode("utf-8"))
+            self.SystemCatalogFile.write(
+                bytes([Type.NumberOfFiles]))
+            self.SystemCatalogFile.write(
+                bytes([Type.NumberOfFields]))
 
-            self.SystemCatalogFile.close()
+            for i in range(Type.NumberOfFields):
+                FN = self.complate(Type.Fields_Names[i])
+                self.SystemCatalogFile.write(FN.encode("utf-8"))
 
-
-class Type:
-
-    def __init__(self, TypeName, NumberOfFiles, NumberOfFields, Fields_Names):
-
-        self.TypeName = TypeName
-        self.NumberOfFiles = NumberOfFiles
-        self.NumberOfFields = NumberOfFields
-        self.Fields_Names = Fields_Names
-
-
-class Record:
-    def __init__(self, FileID, PageID, RecordID, PrimaryKey):
-        self.FileID = FileID
-        self.PageID = PageID
-        self.RecordID = RecordID
-        self.PrimaryKey = PrimaryKey
-
-
-class indexFile:
-
-    def __init__(self, Number_OF_Records, Max_Number_OF_Records_Per_File, Records):
-        self.Number_OF_Records = Number_OF_Records
-        self.Max_Number_OF_Records_Per_File = Max_Number_OF_Records_Per_File
-        self.Records = Records
+        self.SystemCatalogFile.close()
 
 
 class DLL:
@@ -203,6 +238,11 @@ class DLL:
             indexFile.close()
             newType = Type(TypeName, 0, NumberOfFields, Fields_Names)
             self.SystemCatalog.addNewType(newType)
+
+            self.SystemCatalog.indexFiles.update(
+                {TypeName: classindexFile(0, maxNoofRecords, [])})
+        else:
+            print("Type is not going to be written!!!!!!!")
 
     def List_All_Types(self):
         for i in range(self.SystemCatalog.NumberOfTypes):
@@ -228,6 +268,15 @@ class DML:
             "i", indexFile.read(4))[0]
         print(MaxNumberOfRecordsPerFile, " is read from indexFile of ", TypeName)
         MaxNumberOfRecordsPerPage = int(MaxNumberOfRecordsPerFile/256)
+        for x in self.SystemCatalog.indexFiles:
+            print("keys", self.SystemCatalog.indexFiles[x])
+        TuppleReturned = insert_Record_To_indexFile(
+            Fields_Values[0], self.SystemCatalog.indexFiles[TypeName])
+
+        print("we placed the new record at",
+              TuppleReturned[0], "th index")
+        print(" FileID is:", TuppleReturned[1].FileID, " PageID is:", TuppleReturned[1].PageID,
+              " RecordID is:", TuppleReturned[1].RecordID, " PK is:", TuppleReturned[1].PrimaryKey)
 
 
 if not os.path.exists("indexFiles"):
@@ -238,16 +287,7 @@ with SystemCatalog() as f:
     d1 = DLL(f)
     d2 = DML(f)
     d1.Create_Type("Humans", 3, ["age", "len", "spe"])  # 16
-    d1.Create_Type("Cats", 4, ["age", "len", "spe", "smell"])  # 18
-    d1.Create_Type("Humans", 3, ["age", "len", "spe"])  # 16
+    # d1.Create_Type("Cats", 4, ["age", "len", "spe", "smell"])  # 18
+    # d1.Create_Type("Humans", 3, ["age", "len", "spe"])  # 16
 
     d2.Create_Record("Humans", [23, 172, 45])
-
-print()
-print()
-with SystemCatalog() as iso:
-
-    print("Burası cok onemliiii ", len(iso.Types))
-
-    d1 = DLL(iso)
-    d1.List_All_Types()
