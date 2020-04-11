@@ -21,6 +21,32 @@ def Check_If_Type_Exits(TypeName, SystemCatalog):
     return None
 
 
+def record_Control(TypeName, NumberOfFields, PrimaryKey, SystemCatalog):
+    if Check_If_Type_Exits(TypeName, SystemCatalog) == None:
+        print("The File you want to add a record in is not found!!!")
+        os._exit(0)
+    else:
+        if NumberOfFields > 64 or NumberOfFields < 3:
+            print("The number of Fields are not in desired interval")
+        else:
+            path = "./indexFiles/"+str(TypeName)+"index"
+            indexFile = open(path, "rb")
+            CurrentNumberOfRecords = struct.unpack(
+                "i", indexFile.read(4))[0]
+            MaxNumberOfRecordsPerFile = struct.unpack(
+                "i", indexFile.read(4))[0]
+            PeekNumberOfRecords = 256*MaxNumberOfRecordsPerFile
+            if CurrentNumberOfRecords == PeekNumberOfRecords:
+                print("The system cannot accept one more record!!!")
+            else:
+                print("checking if the given Primary Key is already being used...")
+                TheindexFile = SystemCatalog.indexFiles[TypeName]
+                for i in TheindexFile.Records:
+                    if i.PrimaryKey == PrimaryKey:
+                        print("The primary key is alread being used!!!")
+                        os._exit(0)
+
+
 def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
     index = 0
     RID, FID, PID = 1, 1, 1
@@ -260,6 +286,8 @@ class DML:
         self.SystemCatalog = SystemCatalog
 
     def Create_Record(self, TypeName, Fields_Values):
+        record_Control(TypeName, len(Fields_Values),
+                       Fields_Values[0], self.SystemCatalog)
         print("Creating Record")
         filename = "./indexFiles/"+str(TypeName)+"index"
         indexFile = open(filename, "rb")
@@ -287,7 +315,7 @@ with SystemCatalog() as f:
     d1 = DLL(f)
     d2 = DML(f)
     d1.Create_Type("Humans", 3, ["age", "len", "spe"])  # 16
-    # d1.Create_Type("Cats", 4, ["age", "len", "spe", "smell"])  # 18
-    # d1.Create_Type("Humans", 3, ["age", "len", "spe"])  # 16
-
+    d1.Create_Type("Cats", 4, ["age", "len", "spe", "smell"])  # 18
+    d1.Create_Type("Humans", 3, ["age", "len", "spe"])  # 16
+    d2.Create_Record("Humansss", [23, 172, 45])
     d2.Create_Record("Humans", [23, 172, 45])
