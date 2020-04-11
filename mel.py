@@ -32,48 +32,26 @@ def LinkFilesbetween(TypeName, Previous, Next):
     SecondFile.write(bytes([int(Previous)]))
 
 
-def record_Control(TypeName, NumberOfFields, PrimaryKey, SystemCatalog):
-    if Check_If_Type_Exits(TypeName, SystemCatalog) == None:
-        print("The File you want to add a record in is not found!!!")
-        os._exit(0)
-    else:
-        if NumberOfFields > 64 or NumberOfFields < 3:
-            print("The number of Fields are not in desired interval")
-        else:
-            path = "./indexFiles/"+str(TypeName)+"index"
-            indexFile = open(path, "rb")
-            CurrentNumberOfRecords = struct.unpack(
-                "i", indexFile.read(4))[0]
-            MaxNumberOfRecordsPerFile = struct.unpack(
-                "i", indexFile.read(4))[0]
-            PeekNumberOfRecords = 256*MaxNumberOfRecordsPerFile
-            if CurrentNumberOfRecords == PeekNumberOfRecords:
-                print("The system cannot accept one more record!!!")
-            else:
-                print("checking if the given Primary Key is already being used...")
-                TheindexFile = SystemCatalog.indexFiles[TypeName]
-                for i in TheindexFile.Records:
-                    if i.PrimaryKey == PrimaryKey:
-                        print("The primary key is alread being used!!!")
-                        os._exit(0)
-
-
 def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
     index = 0
-    RID, FID, PID = 1, 1, 1
-    # print(TheindexFile.Records)
+
     for RecordN in TheindexFile.Records:
         # BINARYYYYYYYYYY SEARCHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
         if RecordN.PrimaryKey > PrimaryKey:
-            RID = RecordN.RecordID
-            FID = RecordN.FileID
-            PID = RecordN.PageID
+
             break
         index += 1
-    if RID == int(TheindexFile.Max_Number_OF_Records_Per_File/256):
+    RID = TheindexFile.Records[index-1].RecordID+1
+    FID = TheindexFile.Records[index-1].FileID
+    PID = TheindexFile.Records[index-1].PageID
+    border = int(TheindexFile.Max_Number_OF_Records_Per_File/256)
+    print("indexxxxxxxxxxxxxx", index)
+    print("BORDERRRR", border)
+    if RID > border-1:
+        print("xXXXXXXXXXXXXXXXXXXXXXX")
         RID = 1
         PID += 1
-    if PID == 257:
+    if PID == 256:
         PID = 1
         FID += 1
     newRecord = Record(FID, PID, RID, PrimaryKey)
@@ -148,7 +126,7 @@ class SystemCatalog:
                 Type_Name = self.SystemCatalogFile.read(
                     16).decode("utf-8")
                 Type_Name = re.sub(" ", "", Type_Name)
-                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
                 File_No = struct.unpack(
                     "b", self.SystemCatalogFile.read(1))[0]
                 Fields_No = struct.unpack(
@@ -198,9 +176,7 @@ class SystemCatalog:
 
                 TI = classindexFile(NumberOfRecords, NumberOfRecordsPerFile,
                                     Temp_Records_Array)
-                print(
-                    "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                a = TI.Records
+
                 self.indexFiles.update({Type.TypeName: TI})
                 TindexFile.close()
             except Exception as e:
@@ -219,7 +195,7 @@ class SystemCatalog:
                 "i", self.indexFiles[key].Max_Number_OF_Records_Per_File))
             if len(self.indexFiles[key].Records) > 0:
                 for record in self.indexFiles[key].Records:
-                    #print("AAAAAAAAAAAAAAAAAAAAAAA", record.FileID)
+
                     TindexFile.write(
                         bytes([int(record.FileID)]))
                     TindexFile.write(
@@ -282,7 +258,7 @@ class DLL:
             if not os.path.exists("Files/"+str(TypeName)):
                 os.mkdir("Files/"+str(TypeName))
             FirstFilePATH = "./Files/" + \
-                str(TypeName)+"/"+str(TypeName)+str(1)
+                str(TypeName)+"/"+str(TypeName)+str(0)
 
             if not os.path.exists(FirstFilePATH):
                 open(FirstFilePATH, "a").close()
@@ -313,25 +289,21 @@ class DML:
         self.SystemCatalog = SystemCatalog
 
     def Create_Record(self, TypeName, Fields_Values):
-        # record_Control(TypeName, len(Fields_Values),
-        # Fields_Values[0], self.SystemCatalog)
-        #print("Creating Record")
+
         filename = "./indexFiles/"+str(TypeName)+"index"
         indexFile = open(filename, "rb")
         indexFile.seek(4)
+        if len(self.SystemCatalog.indexFiles[str(TypeName)].Records) == 0:
+            self.SystemCatalog.indexFiles[TypeName].Records.append(
+                Record(0, 0, 0, Fields_Values[0]))
         MaxNumberOfRecordsPerFile = struct.unpack(
             "i", indexFile.read(4))[0]
-        #print(MaxNumberOfRecordsPerFile, " is read from indexFile of ", TypeName)
+
         MaxNumberOfRecordsPerPage = int(MaxNumberOfRecordsPerFile/256)
-        # for x in self.SystemCatalog.indexFiles:
-        #print("keys", self.SystemCatalog.indexFiles[x])
+        indexFile.seek(0, 0)
         TuppleReturned = insert_Record_To_indexFile(
             Fields_Values[0], self.SystemCatalog.indexFiles[TypeName])
 
-        # print("we placed the new record at",
-        # TuppleReturned[0], "th index")
-        # print(" FileID is:", TuppleReturned[1].FileID, " PageID is:", TuppleReturned[1].PageID,
-        # " RecordID is:", TuppleReturned[1].RecordID, " PK is:", TuppleReturned[1].PrimaryKey)
         File = None
         PATH = "./Files/" + \
             str(TypeName)+"/"+str(TypeName)+str(TuppleReturned[1].FileID)
@@ -351,8 +323,11 @@ if not os.path.exists("Files"):
 with SystemCatalog() as f:
     d1 = DLL(f)
     d2 = DML(f)
-    d1.Create_Type("Humans", 3, ["age", "len", "spe"])  # 16
+    d1.Create_Type("Humans", 10, [
+                   "age", "len", "spe", "age", "age", "age", "age", "age", "age", "age"])  # 16
     d1.Create_Type("Cats", 4, ["age", "len", "spe", "smell"])  # 18
 
-    for i in range(170*257):
-        d2.Create_Record("Humans", [i, 172, 45])
+    for i in range(1, 51*256):
+        d2.Create_Record("Humans", [i, 172, 45, 1, 1, 1, 2, 3, 4, 5])
+        print(f.indexFiles["Humans"].Records[i].FileID, f.indexFiles["Humans"].Records[i].PageID,
+              f.indexFiles["Humans"].Records[i].RecordID, f.indexFiles["Humans"].Records[i].PrimaryKey)
