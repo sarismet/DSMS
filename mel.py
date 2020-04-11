@@ -32,27 +32,60 @@ def LinkFilesbetween(TypeName, Previous, Next):
     SecondFile.write(bytes([int(Previous)]))
 
 
+def binarySearch(arr, l, r, x):
+    #print(r, l)
+    # Check base case
+    if r > l:
+
+        mid = l + (r - l) // 2
+
+        # If element is present at the middle itself
+        if arr[mid].PrimaryKey > x and arr[mid-1].PrimaryKey < x:
+            return (1, mid)
+
+        # If element is smaller than mid, then it
+        # can only be present in left subarray
+        elif arr[mid].PrimaryKey > x and arr[mid-1].PrimaryKey > x:
+            return binarySearch(arr, l, mid-1, x)
+
+        # Else the element can only be present
+        # in right subarray
+        else:
+            return binarySearch(arr, mid + 1, r, x)
+    elif r == 0 and l == 0:
+        if arr[r].PrimaryKey > x:
+            return (0, 0)
+        else:
+            return (1, 1)
+    elif r == len(arr)-1 and l == len(arr)-1:
+        # Element is not present in the array
+
+        return (1, len(arr)-1)
+
+
 def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
     index = 0
 
-    for RecordN in TheindexFile.Records:
+    """for RecordN in TheindexFile.Records:
         # BINARYYYYYYYYYY SEARCHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
         if RecordN.PrimaryKey > PrimaryKey:
 
             break
-        index += 1
-    RID = TheindexFile.Records[index-1].RecordID+1
-    FID = TheindexFile.Records[index-1].FileID
-    PID = TheindexFile.Records[index-1].PageID
+        index += 1"""
+    index = binarySearch(TheindexFile.Records, 0, len(
+        TheindexFile.Records)-1, PrimaryKey)
+    print("Returned index", index)
+
+    RID = TheindexFile.Records[index].RecordID
+    FID = TheindexFile.Records[index].FileID
+    PID = TheindexFile.Records[index].PageID
     border = int(TheindexFile.Max_Number_OF_Records_Per_File/256)
-    print("indexxxxxxxxxxxxxx", index)
-    print("BORDERRRR", border)
+
     if RID > border-1:
-        print("xXXXXXXXXXXXXXXXXXXXXXX")
-        RID = 1
+        RID = 0
         PID += 1
     if PID == 256:
-        PID = 1
+        PID = 0
         FID += 1
     newRecord = Record(FID, PID, RID, PrimaryKey)
     TheindexFile.Records.insert(index, newRecord)
@@ -76,6 +109,9 @@ class Record:
         self.PageID = PageID
         self.RecordID = RecordID
         self.PrimaryKey = PrimaryKey
+
+    def __gt__(self, OtherRecord):
+        return self.PrimaryKey < OtherRecord.PrimaryKey
 
 
 class classindexFile:
@@ -277,11 +313,6 @@ class DLL:
         for i in range(self.SystemCatalog.NumberOfTypes):
             x = self.SystemCatalog.Types[i].TypeName
 
-    def List_All_Types(self):
-        print("Listing all types...")
-        for Type in self.SystemCatalog.Types:
-            print(Type.TypeName)
-
 
 class DML:
 
@@ -327,7 +358,7 @@ with SystemCatalog() as f:
                    "age", "len", "spe", "age", "age", "age", "age", "age", "age", "age"])  # 16
     d1.Create_Type("Cats", 4, ["age", "len", "spe", "smell"])  # 18
 
-    for i in range(1, 51*256):
+    for i in range(1, 51):
         d2.Create_Record("Humans", [i, 172, 45, 1, 1, 1, 2, 3, 4, 5])
         print(f.indexFiles["Humans"].Records[i].FileID, f.indexFiles["Humans"].Records[i].PageID,
               f.indexFiles["Humans"].Records[i].RecordID, f.indexFiles["Humans"].Records[i].PrimaryKey)
