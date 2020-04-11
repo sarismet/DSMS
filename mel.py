@@ -32,64 +32,31 @@ def LinkFilesbetween(TypeName, Previous, Next):
     SecondFile.write(bytes([int(Previous)]))
 
 
-def binarySearch(arr, l, r, x):
-    #print(r, l)
-    # Check base case
-    if r > l:
-
-        mid = l + (r - l) // 2
-
-        # If element is present at the middle itself
-        if arr[mid].PrimaryKey > x and arr[mid-1].PrimaryKey < x:
-            return (1, mid)
-
-        # If element is smaller than mid, then it
-        # can only be present in left subarray
-        elif arr[mid].PrimaryKey > x and arr[mid-1].PrimaryKey > x:
-            return binarySearch(arr, l, mid-1, x)
-
-        # Else the element can only be present
-        # in right subarray
-        else:
-            return binarySearch(arr, mid + 1, r, x)
-    elif r == 0 and l == 0:
-        if arr[r].PrimaryKey > x:
-            return (0, 0)
-        else:
-            return (1, 1)
-    elif r == len(arr)-1 and l == len(arr)-1:
-        # Element is not present in the array
-
-        return (1, len(arr)-1)
-
-
 def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
     index = 0
 
-    """for RecordN in TheindexFile.Records:
-        # BINARYYYYYYYYYY SEARCHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+    RID, FID, PID = 1, 1, 1
+    print(TheindexFile.Records)
+    for RecordN in TheindexFile.Records:
+
         if RecordN.PrimaryKey > PrimaryKey:
-
             break
-        index += 1"""
-    index = binarySearch(TheindexFile.Records, 0, len(
-        TheindexFile.Records)-1, PrimaryKey)
-    print("Returned index", index)
+        index += 1
+    TheindexFile.Number_OF_Records += 1
+    if index == 0:
+        FID = TheindexFile.Records[0].FileID
+        PID = TheindexFile.Records[0].PageID
+        RID = TheindexFile.Records[0].RecordID
+        return_index = 1
+        newRecord = Record(FID, PID, RID, PrimaryKey)
+        TheindexFile.Records.insert(index, newRecord)
 
-    RID = TheindexFile.Records[index].RecordID
-    FID = TheindexFile.Records[index].FileID
-    PID = TheindexFile.Records[index].PageID
-    border = int(TheindexFile.Max_Number_OF_Records_Per_File/256)
-
-    if RID > border-1:
-        RID = 0
-        PID += 1
-    if PID == 256:
-        PID = 0
-        FID += 1
+        return(1, newRecord)
+    FID = TheindexFile.Records[index-1].FileID
+    PID = TheindexFile.Records[index-1].PageID
+    RID = TheindexFile.Records[index-1].RecordID
     newRecord = Record(FID, PID, RID, PrimaryKey)
     TheindexFile.Records.insert(index, newRecord)
-    TheindexFile.Number_OF_Records += 1
     return(index, newRecord)
 
 
