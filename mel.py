@@ -21,6 +21,17 @@ def Check_If_Type_Exits(TypeName, SystemCatalog):
     return None
 
 
+def LinkFilesbetween(TypeName, Previous, Next):
+    print("Linking between Files")
+    MutualPath = "Files/"+str(TypeName)+"/"+str(TypeName)
+    FirstFile = open(MutualPath+str(Previous), "wb")
+    SecondFile = open(MutualPath+str(Next), "wb")
+    FirstFile.seek(6)
+    SecondFile.seek(7)
+    FirstFile.write(bytes([int(Next)]))
+    SecondFile.write(bytes([int(Previous)]))
+
+
 def record_Control(TypeName, NumberOfFields, PrimaryKey, SystemCatalog):
     if Check_If_Type_Exits(TypeName, SystemCatalog) == None:
         print("The File you want to add a record in is not found!!!")
@@ -50,9 +61,9 @@ def record_Control(TypeName, NumberOfFields, PrimaryKey, SystemCatalog):
 def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
     index = 0
     RID, FID, PID = 1, 1, 1
-    print(TheindexFile.Records)
+    # print(TheindexFile.Records)
     for RecordN in TheindexFile.Records:
-
+        # BINARYYYYYYYYYY SEARCHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
         if RecordN.PrimaryKey > PrimaryKey:
             RID = RecordN.RecordID
             FID = RecordN.FileID
@@ -62,7 +73,7 @@ def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
     if RID == int(TheindexFile.Max_Number_OF_Records_Per_File/256):
         RID = 1
         PID += 1
-    if PID == 256:
+    if PID == 257:
         PID = 1
         FID += 1
     newRecord = Record(FID, PID, RID, PrimaryKey)
@@ -208,7 +219,7 @@ class SystemCatalog:
                 "i", self.indexFiles[key].Max_Number_OF_Records_Per_File))
             if len(self.indexFiles[key].Records) > 0:
                 for record in self.indexFiles[key].Records:
-                    print("AAAAAAAAAAAAAAAAAAAAAAA", record.FileID)
+                    #print("AAAAAAAAAAAAAAAAAAAAAAA", record.FileID)
                     TindexFile.write(
                         bytes([int(record.FileID)]))
                     TindexFile.write(
@@ -258,7 +269,7 @@ class DLL:
             print("Type is available to create\nCreating Type...")
             filename = "./indexFiles/"+str(TypeName)+"index"
             indexFile = open(filename, "wb")
-            maxNoofRecords = int(2048/(4*NumberOfFields))
+            maxNoofRecords = int(2048/(4*NumberOfFields))*256
             indexFile.write(struct.pack("i", 0))
             indexFile.write(struct.pack("i", maxNoofRecords))
             indexFile.close()
@@ -267,6 +278,22 @@ class DLL:
 
             self.SystemCatalog.indexFiles.update(
                 {TypeName: classindexFile(0, maxNoofRecords, [])})
+
+            if not os.path.exists("Files/"+str(TypeName)):
+                os.mkdir("Files/"+str(TypeName))
+            FirstFilePATH = "./Files/" + \
+                str(TypeName)+"/"+str(TypeName)+str(1)
+
+            if not os.path.exists(FirstFilePATH):
+                open(FirstFilePATH, "a").close()
+
+            FirstFile = open(FirstFilePATH, "wb")
+            FirstFile.write(bytes([int(0)]))
+            FirstFile.write(struct.pack("i", 0))
+            FirstFile.write(bytes([int(0)]))
+            FirstFile.write(bytes([int(0)]))
+            FirstFile.write(bytes([int(0)]))
+
         else:
             print("Type is not going to be written!!!!!!!")
 
@@ -286,29 +313,39 @@ class DML:
         self.SystemCatalog = SystemCatalog
 
     def Create_Record(self, TypeName, Fields_Values):
-        record_Control(TypeName, len(Fields_Values),
-                       Fields_Values[0], self.SystemCatalog)
-        print("Creating Record")
+        # record_Control(TypeName, len(Fields_Values),
+        # Fields_Values[0], self.SystemCatalog)
+        #print("Creating Record")
         filename = "./indexFiles/"+str(TypeName)+"index"
         indexFile = open(filename, "rb")
         indexFile.seek(4)
         MaxNumberOfRecordsPerFile = struct.unpack(
             "i", indexFile.read(4))[0]
-        print(MaxNumberOfRecordsPerFile, " is read from indexFile of ", TypeName)
+        #print(MaxNumberOfRecordsPerFile, " is read from indexFile of ", TypeName)
         MaxNumberOfRecordsPerPage = int(MaxNumberOfRecordsPerFile/256)
-        for x in self.SystemCatalog.indexFiles:
-            print("keys", self.SystemCatalog.indexFiles[x])
+        # for x in self.SystemCatalog.indexFiles:
+        #print("keys", self.SystemCatalog.indexFiles[x])
         TuppleReturned = insert_Record_To_indexFile(
             Fields_Values[0], self.SystemCatalog.indexFiles[TypeName])
 
-        print("we placed the new record at",
-              TuppleReturned[0], "th index")
-        print(" FileID is:", TuppleReturned[1].FileID, " PageID is:", TuppleReturned[1].PageID,
-              " RecordID is:", TuppleReturned[1].RecordID, " PK is:", TuppleReturned[1].PrimaryKey)
+        # print("we placed the new record at",
+        # TuppleReturned[0], "th index")
+        # print(" FileID is:", TuppleReturned[1].FileID, " PageID is:", TuppleReturned[1].PageID,
+        # " RecordID is:", TuppleReturned[1].RecordID, " PK is:", TuppleReturned[1].PrimaryKey)
+        File = None
+        PATH = "./Files/" + \
+            str(TypeName)+"/"+str(TypeName)+str(TuppleReturned[1].FileID)
+        if not os.path.exists(PATH):
+            open(PATH, "a").close()
+            LinkFilesbetween(
+                TypeName, TuppleReturned[1].FileID-1, TuppleReturned[1].FileID)
 
 
 if not os.path.exists("indexFiles"):
     os.mkdir("indexFiles")
+
+if not os.path.exists("Files"):
+    os.mkdir("Files")
 
 
 with SystemCatalog() as f:
@@ -316,6 +353,6 @@ with SystemCatalog() as f:
     d2 = DML(f)
     d1.Create_Type("Humans", 3, ["age", "len", "spe"])  # 16
     d1.Create_Type("Cats", 4, ["age", "len", "spe", "smell"])  # 18
-    d1.Create_Type("Humans", 3, ["age", "len", "spe"])  # 16
-    d2.Create_Record("Humansss", [23, 172, 45])
-    d2.Create_Record("Humans", [23, 172, 45])
+
+    for i in range(170*257):
+        d2.Create_Record("Humans", [i, 172, 45])
