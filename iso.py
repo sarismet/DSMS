@@ -52,7 +52,7 @@ class Record_indexFile:
 class SystemCatalog:
     def __init__(self):
         self.NumberOfTypes = 0
-        self.Types = []
+        self.Types = {}
         self.indexFiles = {}
         self.SystemCatalogFile = None
         if os.path.exists("SystemCatalog"):
@@ -83,8 +83,9 @@ class SystemCatalog:
             print(self.NumberOfTypes, " is read from SystemCatalog ")
 
             for i in range(self.NumberOfTypes):
-                Type_Name = self.SystemCatalogFile.read(16).decode("utf-8")
-                Type_Name = re.sub(" ", "", Type_Name)
+                Temp_Type_Name = self.SystemCatalogFile.read(
+                    16).decode("utf-8")
+                Type_Name = re.sub(" ", "", Temp_Type_Name)
 
                 File_No = struct.unpack("b", self.SystemCatalogFile.read(1))[0]
                 Fields_No = struct.unpack(
@@ -124,6 +125,8 @@ class SystemCatalog:
                         NumberOfPageinFileHeader, NextFileinFileHeader, PreviousFileinFileHeader, Pages))
                     File.close()
 
+            T = Type(Type_Name, File_No, Fields_No, Fields, Files)
+            self.Types.update({Type_Name: T})
             self.SystemCatalogFile.close()
             print("Reading All Type Files is Compleated")
             print("Phase 2 ....Reading All indexFiles.... ")
@@ -135,9 +138,9 @@ class SystemCatalog:
 
     def readindexFiles(self):
         print("All indexFiles are being read...")
-        for Type in self.Types:
+        for TypeName in self.Types:
             try:
-                filepath = "./indexFiles/" + str(Type.TypeName) + "index"
+                filepath = "./indexFiles/" + str(TypeName) + "index"
                 print(filepath)
                 TindexFile = open(filepath, "rb")
                 NumberOfRecords = struct.unpack("i", TindexFile.read(4))[0]
@@ -161,7 +164,7 @@ class SystemCatalog:
                     NumberOfRecords, NumberOfRecordsPerFile, Temp_Records_Array
                 )
 
-                self.indexFiles.update({Type.TypeName: TI})
+                self.indexFiles.update({TypeName: TI})
                 TindexFile.close()
             except Exception as e:
                 print(e)
@@ -172,19 +175,21 @@ class SystemCatalog:
         try:
             self.SystemCatalogFile = open("SystemCatalog", "wb")
             self.SystemCatalogFile.write(struct.pack("i", self.NumberOfTypes))
-            for Type in self.Types:
-                TypeName = self.complate(Type.TypeName)
-                self.SystemCatalogFile.write(TypeName.encode("utf-8"))
-                self.SystemCatalogFile.write(bytes([Type.NumberOfFiles]))
-                self.SystemCatalogFile.write(bytes([Type.NumberOfFields]))
+            for TypeName in self.Types:
+                TypeNameToWrite = self.complate(TypeName)
+                self.SystemCatalogFile.write(TypeNameToWrite.encode("utf-8"))
+                self.SystemCatalogFile.write(
+                    bytes([self.Types[TypeName].NumberOfFiles]))
+                self.SystemCatalogFile.write(
+                    bytes([self.Types[TypeName].NumberOfFields]))
 
-                for i in range(Type.NumberOfFields):
-                    FN = self.complate(Type.Fields_Names[i])
+                for i in range(self.Types[TypeName].NumberOfFields):
+                    FN = self.complate(self.Types[TypeName].Fields_Names[i])
                     self.SystemCatalogFile.write(FN.encode("utf-8"))
                     index = 0
-                for File in Type.Files:
-                    PATH = "Files/"+str(Type.TypeName)+"/" + \
-                        str(Type.TypeName)+str(index)
+                for File in self.Types[TypeName].Files:
+                    PATH = "Files/"+str(self.Types[TypeName].TypeName)+"/" + \
+                        str(self.Types[TypeName].TypeName)+str(index)
                     if not os.path.exists(PATH):
                         open(PATH, "a").close()
                     File_To_Write = open(PATH, "wb")
@@ -237,8 +242,10 @@ class DLL:
 
     def Create_Type(self, TypeName, NumberOfFields, Fields_Names):
         newType = Type(TypeName, 0, NumberOfFields, Fields_Names, [])
+        self.SystemCatalog.Types.update({TypeName: newType})
+        self.SystemCatalog.NumberOfTypes += 1
         PATH = "./indexFiles/" + str(TypeName) + "index"
-        FirstIndexFile = open(PATH, "wb")
+        open(PATH, "wb")
         maxNoofRecordsPerFile = int(2048 / (4 * NumberOfFields)) * 256
         self.SystemCatalog.indexFiles.update(
             {TypeName: indexFile(0, maxNoofRecordsPerFile, [])}
