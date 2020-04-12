@@ -285,22 +285,42 @@ class DML:
         MaxNumberOfRecordsPerPage = int(MaxNumberOfRecordsPerFile / 256)
         indexFile.close()
         main_indexFile = self.SystemCatalog.indexFiles[TypeName]
-        Returned_Index = insert_Record_To_indexFile(
-            Fields_Values[0], self.SystemCatalog.indexFiles[main_indexFile]
+        Returned_Index = insert_Record_To_indexFile(Fields_Values[0], main_indexFile)
+        FileID = main_indexFile[Returned_Index].FileID
+
+        PageID = main_indexFile[Returned_Index].FileID
+
+        RecordID = main_indexFile[Returned_Index].FileID
+        newRecord = Record(Fields_Values)
+        self.SystemCatalog.Types[TypeName].Files[FileID].Pages[PageID].Records.insert(
+            newRecord
         )
 
         if Returned_Index != -1:
             index = Returned_Index
             while index < len(main_indexFile):
                 main_indexFile.Records[index].RecordID += 1
-                if main_indexFile.Records[index].RecordID == MaxNumberOfRecordsPerPage:
+                if (
+                    main_indexFile.Records[index].RecordID
+                    == MaxNumberOfRecordsPerPage - 1
+                ):
                     main_indexFile.Records[index].RecordID = 0
+                    main_indexFile.Records[index].PageID += 1
+
+                    if main_indexFile.Records[index].PageID == 256:
+                        tempRecord = (
+                            self.SystemCatalog.Types[TypeName]
+                            .Files[FileID]
+                            .Pages[255]
+                            .Records.pop()
+                        )
+                        main_indexFile.Records[index].PageID = 0
+                        main_indexFile.Records[index].FileID += 1
 
 
 def Check_If_Type_Exits(TypeName, SystemCatalog):
     print("Checking If Type Exits...")
     for Type in SystemCatalog.Types:
-        print(Type)
         if Type == TypeName:
             print("The Type is found!!! ")
             return True
@@ -347,7 +367,7 @@ if not os.path.exists("Files"):
 with SystemCatalog() as f:
     d1 = DLL(f)
 
-    d1.Create_Type("1", 3, ["age", "len", "spe"])  # 16
-    d1.Create_Type("2", 4, ["age", "len", "spe", "smell"])  # 18
-    d1.Create_Type("3", 3, ["age", "len", "spe"])  # 16
-    d1.Create_Type("4", 4, ["agex", "lenx", "spex", "prox"])  # 16
+    d1.Create_Type("5", 3, ["age", "len", "spe"])  # 16
+    d1.Create_Type("6", 4, ["age", "len", "spe", "smell"])  # 18
+    d1.Create_Type("7", 3, ["age", "len", "spe"])  # 16
+    d1.Create_Type("8", 4, ["agex", "lenx", "spex", "prox"])  # 16
