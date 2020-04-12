@@ -285,37 +285,61 @@ class DML:
         MaxNumberOfRecordsPerPage = int(MaxNumberOfRecordsPerFile / 256)
         indexFile.close()
         main_indexFile = self.SystemCatalog.indexFiles[TypeName]
+        newRecord = Record(Fields_Values)
+        if len(main_indexFile.Records) == 0:
+            newRecord = Record_indexFile(0, 0, 0, Fields_Values[0])
+            main_indexFile.Records.append(newRecord)
+            newPage = Page(1, [])
+            newPage.Records.append(newRecord)
+            newFile = File(1, 0, 0, [])
+            newFile.Pages.append(newPage)
+            self.SystemCatalog.Types[TypeName].Files.append(newFile)
+            return
+
         Returned_Index = insert_Record_To_indexFile(Fields_Values[0], main_indexFile)
         FileID = main_indexFile[Returned_Index].FileID
 
         PageID = main_indexFile[Returned_Index].FileID
 
         RecordID = main_indexFile[Returned_Index].FileID
-        newRecord = Record(Fields_Values)
+
         self.SystemCatalog.Types[TypeName].Files[FileID].Pages[PageID].Records.insert(
             newRecord
         )
 
-        if Returned_Index != -1:
-            index = Returned_Index
-            while index < len(main_indexFile):
-                main_indexFile.Records[index].RecordID += 1
-                if (
-                    main_indexFile.Records[index].RecordID
-                    == MaxNumberOfRecordsPerPage - 1
-                ):
-                    main_indexFile.Records[index].RecordID = 0
-                    main_indexFile.Records[index].PageID += 1
+        index = Returned_Index
+        while index < len(main_indexFile):
+            FID = main_indexFile.Records[index].FileID
+            PID = main_indexFile.Records[index].PageID
+            RID = main_indexFile.Records[index].RecordID
+            RecordN = (
+                self.SystemCatalog.Types[TypeName].Files[FID].Pages[PID].Records[RID]
+            )
 
-                    if main_indexFile.Records[index].PageID == 256:
-                        tempRecord = (
-                            self.SystemCatalog.Types[TypeName]
-                            .Files[FileID]
-                            .Pages[255]
-                            .Records.pop()
-                        )
-                        main_indexFile.Records[index].PageID = 0
-                        main_indexFile.Records[index].FileID += 1
+            main_indexFile.Records[index].RecordID += 1
+            if main_indexFile.Records[index].RecordID == MaxNumberOfRecordsPerPage - 1:
+                main_indexFile.Records[index].RecordID = 0
+                main_indexFile.Records[index].PageID += 1
+
+                if main_indexFile.Records[index].PageID == 256:
+
+                    main_indexFile.Records[index].PageID = 0
+                    main_indexFile.Records[index].FileID += 1
+
+            if main_indexFile.Records[index].FileID == len(
+                self.SystemCatalog.Types[TypeName].Files
+            ):
+                newFilex = File(1, 0, main_indexFile.Records[index - 1].FileID, [])
+                newPagex = Page(1, [])
+                newPagex.Records.append(RecordN)
+                newFilex.Pages.append(newPagex)
+                self.SystemCatalog.Types[TypeName].Files.append(newFilex)
+                return
+            if main_indexFile.Records[index].PageID == len(
+                self.SystemCatalog.Types[TypeName].Files.Pages
+            ):
+                newPagex = Page(1, [])
+                newPagex.Records.append
 
 
 def Check_If_Type_Exits(TypeName, SystemCatalog):
@@ -328,10 +352,7 @@ def Check_If_Type_Exits(TypeName, SystemCatalog):
 
 def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
     TheindexFile.Number_OF_Records += 1
-    if len(TheindexFile.Records) == 0:
-        newRecord = Record_indexFile(0, 0, 0, PrimaryKey)
-        TheindexFile.Records.append(newRecord)
-        return -1
+
     index = 0
 
     RID, FID, PID = 1, 1, 1
