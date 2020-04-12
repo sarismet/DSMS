@@ -76,17 +76,20 @@ class SystemCatalog:
         print("SystemCatalogFile is being read...")
         try:
             self.SystemCatalogFile = open("SystemCatalog", "rb")
-            self.NumberOfTypes = struct.unpack("i", self.SystemCatalogFile.read(4))[0]
+            self.NumberOfTypes = struct.unpack(
+                "i", self.SystemCatalogFile.read(4))[0]
             print(self.NumberOfTypes, " is read from SystemCatalog ")
 
             for i in range(self.NumberOfTypes):
 
-                Temp_Type_Name = self.SystemCatalogFile.read(16).decode("utf-8")
+                Temp_Type_Name = self.SystemCatalogFile.read(
+                    16).decode("utf-8")
                 Type_Name = re.sub(" ", "", Temp_Type_Name)
                 print(Type_Name)
 
                 File_No = struct.unpack("b", self.SystemCatalogFile.read(1))[0]
-                Fields_No = struct.unpack("b", self.SystemCatalogFile.read(1))[0]
+                Fields_No = struct.unpack(
+                    "b", self.SystemCatalogFile.read(1))[0]
                 Fields = []
 
                 for b in range(Fields_No):
@@ -101,9 +104,11 @@ class SystemCatalog:
                     )
                     File = open(str(Type_Name) + str(c), "rb")
 
-                    NumberOfPageinFileHeader = struct.unpack("b", File.read(1))[0]
+                    NumberOfPageinFileHeader = struct.unpack(
+                        "b", File.read(1))[0]
                     NextFileinFileHeader = struct.unpack("b", File.read(1))[0]
-                    PreviousFileinFileHeader = struct.unpack("b", File.read(1))[0]
+                    PreviousFileinFileHeader = struct.unpack(
+                        "b", File.read(1))[0]
                     Pages = []
                     for d in range(int(NumberOfPageinFileHeader)):
 
@@ -118,7 +123,8 @@ class SystemCatalog:
                                     int(struct.unpack("i", File.read(4))[0])
                                 )
                             Records.append(Record(Fields_Of_NewRecord))
-                        Pages.append(Page(NumberOfRecordsinPageHeader, Records))
+                        Pages.append(
+                            Page(NumberOfRecordsinPageHeader, Records))
 
                     Files.append(
                         File(
@@ -149,7 +155,8 @@ class SystemCatalog:
                 print(filepath)
                 TindexFile = open(filepath, "rb")
                 NumberOfRecords = struct.unpack("i", TindexFile.read(4))[0]
-                NumberOfRecordsPerFile = struct.unpack("i", TindexFile.read(4))[0]
+                NumberOfRecordsPerFile = struct.unpack(
+                    "i", TindexFile.read(4))[0]
                 print("In related indexFile we found")
                 print("The Number Of Records ", NumberOfRecords)
                 print("The Number Of Records Per File", NumberOfRecordsPerFile)
@@ -161,7 +168,8 @@ class SystemCatalog:
                     PrimaryKey = struct.unpack("i", TindexFile.read(4))[0]
                     Temp_Records_Array.append(
                         Record_indexFile(
-                            int(FileID), int(PageID), int(RecordID), int(PrimaryKey)
+                            int(FileID), int(PageID), int(
+                                RecordID), int(PrimaryKey)
                         )
                     )
 
@@ -197,23 +205,33 @@ class SystemCatalog:
                 for File in self.Types[TypeName].Files:
                     PATH = (
                         "Files/"
-                        + str(self.Types[TypeName].TypeName)
+                        + str(TypeName)
                         + "/"
-                        + str(self.Types[TypeName].TypeName)
+                        + str(TypeName)
                         + str(index)
                     )
+
                     if not os.path.exists(PATH):
                         open(PATH, "a").close()
                     File_To_Write = open(PATH, "wb")
+
                     File_To_Write.write(bytes([File.NumberOfPages]))
                     File_To_Write.write(bytes([File.NextFile]))
                     File_To_Write.write(bytes([File.PreviousFile]))
-                    for Page in File.Pages:
-                        File_To_Write.write(bytes([Page.NumberOfRecords]))
-                        for Record in Page.Records:
-                            for Field in Record:
-                                File_To_Write.write(struct.pack("i", Field))
+                    try:
+                        for Page in File.Pages:
+
+                            File_To_Write.write(
+                                bytes([Page.NumberOfRecords]))
+                            for Record in Page.Records:
+                                for Field in Record.Fields:
+                                    File_To_Write.write(
+                                        struct.pack("i", Field))
+
+                    except Exception as e:
+                        print(e)
                     File_To_Write.close()
+                    index += 1
             self.SystemCatalogFile.close()
             print("Writing of All Type Files is compleated...")
             self.writebackindexFiles()
@@ -228,9 +246,11 @@ class SystemCatalog:
         for key in self.indexFiles:
             filename = "./indexFiles/" + str(key) + "index"
             TindexFile = open(filename, "wb")
-            TindexFile.write(struct.pack("i", self.indexFiles[key].Number_OF_Records))
+            TindexFile.write(struct.pack(
+                "i", self.indexFiles[key].Number_OF_Records))
             TindexFile.write(
-                struct.pack("i", self.indexFiles[key].Max_Number_OF_Records_Per_File)
+                struct.pack(
+                    "i", self.indexFiles[key].Max_Number_OF_Records_Per_File)
             )
             if len(self.indexFiles[key].Records) > 0:
                 for record in self.indexFiles[key].Records:
@@ -251,15 +271,18 @@ class DLL:
         self.SystemCatalog = SystemCatalog
 
     def Create_Type(self, TypeName, NumberOfFields, Fields_Names):
+
         if not Check_If_Type_Exits(TypeName, self.SystemCatalog):
             newType = Type(TypeName, 0, NumberOfFields, Fields_Names, [])
             self.SystemCatalog.Types.update({TypeName: newType})
             self.SystemCatalog.NumberOfTypes += 1
             PATH = "./indexFiles/" + str(TypeName) + "index"
-            open(PATH, "wb")
+            os.mkdir("Files/"+str(TypeName))
+            open(PATH, "a").close()
             maxNoofRecordsPerFile = int(2048 / (4 * NumberOfFields)) * 256
+            newIndexFile = indexFile(0, maxNoofRecordsPerFile, [])
             self.SystemCatalog.indexFiles.update(
-                {TypeName: indexFile(0, maxNoofRecordsPerFile, [])}
+                {TypeName: newIndexFile}
             )
 
     def Delete_Type(self):
@@ -275,46 +298,31 @@ class DML:
         self.SystemCatalog = SystemCatalog
 
     def Create_Record(self, TypeName, Fields_Values):
+        Type = self.SystemCatalog.Types[TypeName]
 
-        filename = "./indexFiles/" + str(TypeName) + "index"
-        indexFile = open(filename, "rb")
-        indexFile.seek(4)
+        indexFile = self.SystemCatalog.indexFiles[TypeName]
 
-        MaxNumberOfRecordsPerFile = struct.unpack("i", indexFile.read(4))[0]
+        MaxNumberOfRecordsPerFile = indexFile.Max_Number_OF_Records_Per_File
 
         MaxNumberOfRecordsPerPage = int(MaxNumberOfRecordsPerFile / 256)
-        indexFile.close()
+
         main_indexFile = self.SystemCatalog.indexFiles[TypeName]
         newRecord = Record(Fields_Values)
         if len(main_indexFile.Records) == 0:
             newRecord = Record_indexFile(0, 0, 0, Fields_Values[0])
             main_indexFile.Records.append(newRecord)
             newPage = Page(1, [])
-            newPage.Records.append(newRecord)
+            newPage.Records.append(Record(Fields_Values))
             newFile = File(1, 0, 0, [])
             newFile.Pages.append(newPage)
             self.SystemCatalog.Types[TypeName].Files.append(newFile)
             return
 
-        Returned_Index = insert_Record_To_indexFile(Fields_Values[0], main_indexFile)
-        FileID = main_indexFile[Returned_Index].FileID
-
-        PageID = main_indexFile[Returned_Index].FileID
-
-        RecordID = main_indexFile[Returned_Index].FileID
-
-        self.SystemCatalog.Types[TypeName].Files[FileID].Pages[PageID].Records.insert(
-            newRecord
-        )
+        Returned_Index = insert_Record_To_indexFile(
+            Fields_Values[0], main_indexFile, Type, MaxNumberOfRecordsPerPage)
 
         index = Returned_Index
         while index < len(main_indexFile):
-            FID = main_indexFile.Records[index].FileID
-            PID = main_indexFile.Records[index].PageID
-            RID = main_indexFile.Records[index].RecordID
-            RecordN = (
-                self.SystemCatalog.Types[TypeName].Files[FID].Pages[PID].Records[RID]
-            )
 
             main_indexFile.Records[index].RecordID += 1
             if main_indexFile.Records[index].RecordID == MaxNumberOfRecordsPerPage - 1:
@@ -325,21 +333,29 @@ class DML:
 
                     main_indexFile.Records[index].PageID = 0
                     main_indexFile.Records[index].FileID += 1
+                    if main_indexFile.Records[index].FileID == len(Type.Files):
+                        newFile = File(
+                            1, 0, main_indexFile.Records[index].FileID-1, [])
+                        newPage = Page(1, [])
+                        newRecord = Type.Files[main_indexFile.Records[index].FileID -
+                                               1].Pages[255].Records.pop()
+                        newPage.Records.append(newRecord)
+                        newFile.Pages.append(newPage)
+                        Type.Files.append(newFile)
+                        return
 
-            if main_indexFile.Records[index].FileID == len(
-                self.SystemCatalog.Types[TypeName].Files
-            ):
-                newFilex = File(1, 0, main_indexFile.Records[index - 1].FileID, [])
-                newPagex = Page(1, [])
-                newPagex.Records.append(RecordN)
-                newFilex.Pages.append(newPagex)
-                self.SystemCatalog.Types[TypeName].Files.append(newFilex)
-                return
-            if main_indexFile.Records[index].PageID == len(
-                self.SystemCatalog.Types[TypeName].Files.Pages
-            ):
-                newPagex = Page(1, [])
-                newPagex.Records.append
+                    newRecord = Type.Files[main_indexFile.Records[index].FileID -
+                                           1].Pages[255].Records.pop()
+                    Type.Files[main_indexFile.Records[index].FileID].Pages[0].Records.insert(
+                        0, newRecord)
+                    continue
+                newRecord = Type.Files[main_indexFile.Records[index]
+                                       .FileID].Pages[main_indexFile.Records[index].PageID-1].Records.pop()
+                Type.Files[main_indexFile.Records[index].FileID].Pages[main_indexFile.Records[index].PageID].Records.insert(
+                    0, newRecord)
+                continue
+
+            index += 1
 
 
 def Check_If_Type_Exits(TypeName, SystemCatalog):
@@ -350,11 +366,11 @@ def Check_If_Type_Exits(TypeName, SystemCatalog):
             return True
 
 
-def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
+def insert_Record_To_indexFile(Fields, TheindexFile, Type, MaxNumberOfRecordsPerPage):
     TheindexFile.Number_OF_Records += 1
 
     index = 0
-
+    PrimaryKey = Fields[0]
     RID, FID, PID = 1, 1, 1
     print(TheindexFile.Records)
     for RecordN in TheindexFile.Records:
@@ -370,6 +386,7 @@ def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
 
         newRecord = Record_indexFile(FID, PID, RID, PrimaryKey)
         TheindexFile.Records.insert(index, newRecord)
+        Type.Files[0].Pages[0].Records.insert(0, Record(Fields))
 
         return 1
     FID = TheindexFile.Records[index - 1].FileID
@@ -377,6 +394,7 @@ def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
     RID = TheindexFile.Records[index - 1].RecordID
     newRecord = Record_indexFile(FID, PID, RID, PrimaryKey)
     TheindexFile.Records.insert(index, newRecord)
+    Type.Files[FID].Pages[PID].Records.insert(RID+1, Record(Fields))
     return index
 
 
@@ -387,8 +405,9 @@ if not os.path.exists("Files"):
     os.mkdir("Files")
 with SystemCatalog() as f:
     d1 = DLL(f)
-
+    d2 = DML(f)
     d1.Create_Type("5", 3, ["age", "len", "spe"])  # 16
     d1.Create_Type("6", 4, ["age", "len", "spe", "smell"])  # 18
     d1.Create_Type("7", 3, ["age", "len", "spe"])  # 16
     d1.Create_Type("8", 4, ["agex", "lenx", "spex", "prox"])  # 16
+    d2.Create_Record("5", [1, 172, 45, 1, 1, 1, 2, 3, 4, 5])
