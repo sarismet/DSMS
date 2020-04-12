@@ -14,9 +14,7 @@ class Type:
 
 
 class File:
-    def __init__(
-        self, NumberOfPages, NextFile, PreviousFile, Pages
-    ):
+    def __init__(self, NumberOfPages, NextFile, PreviousFile, Pages):
         self.Pages = Pages
         self.NumberOfPages = NumberOfPages
         self.NextFile = NextFile
@@ -55,6 +53,8 @@ class SystemCatalog:
         self.Types = {}
         self.indexFiles = {}
         self.SystemCatalogFile = None
+
+    def __enter__(self):
         if os.path.exists("SystemCatalog"):
             print("SystemCatalogFile is opened successsively")
             self.readSystemCatalogFile()
@@ -62,8 +62,6 @@ class SystemCatalog:
 
             print("There is no such a file...")
             self.createCatalogFile()
-
-    def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -78,63 +76,70 @@ class SystemCatalog:
         print("SystemCatalogFile is being read...")
         try:
             self.SystemCatalogFile = open("SystemCatalog", "rb")
-            self.NumberOfTypes = struct.unpack(
-                "i", self.SystemCatalogFile.read(4))[0]
+            self.NumberOfTypes = struct.unpack("i", self.SystemCatalogFile.read(4))[0]
             print(self.NumberOfTypes, " is read from SystemCatalog ")
 
             for i in range(self.NumberOfTypes):
-                Temp_Type_Name = self.SystemCatalogFile.read(
-                    16).decode("utf-8")
+
+                Temp_Type_Name = self.SystemCatalogFile.read(16).decode("utf-8")
                 Type_Name = re.sub(" ", "", Temp_Type_Name)
+                print(Type_Name)
 
                 File_No = struct.unpack("b", self.SystemCatalogFile.read(1))[0]
-                Fields_No = struct.unpack(
-                    "b", self.SystemCatalogFile.read(1))[0]
+                Fields_No = struct.unpack("b", self.SystemCatalogFile.read(1))[0]
                 Fields = []
 
                 for b in range(Fields_No):
 
                     tempx = self.SystemCatalogFile.read(16).decode("utf-8")
+                    tempx = re.sub(" ", "", tempx)
                     Fields.append(tempx)
                 Files = []
                 for c in range(int(File_No)):
-                    File = open(str(Type_Name)+str(c), "rb")
+                    print(
+                        "BUNU GORMEMEMEN LAZIMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM"
+                    )
+                    File = open(str(Type_Name) + str(c), "rb")
 
-                    NumberOfPageinFileHeader = struct.unpack(
-                        "b", File.read(1))[0]
+                    NumberOfPageinFileHeader = struct.unpack("b", File.read(1))[0]
                     NextFileinFileHeader = struct.unpack("b", File.read(1))[0]
-                    PreviousFileinFileHeader = struct.unpack(
-                        "b", File.read(1))[0]
+                    PreviousFileinFileHeader = struct.unpack("b", File.read(1))[0]
                     Pages = []
                     for d in range(int(NumberOfPageinFileHeader)):
 
-                        NumberOfRecordsinPageHeader = struct.unpack(
-                            "b", File.read(1))[0]
+                        NumberOfRecordsinPageHeader = struct.unpack("b", File.read(1))[
+                            0
+                        ]
                         Records = []
                         for e in range(int(NumberOfRecordsinPageHeader)):
                             Fields_Of_NewRecord = []
                             for f in range(Fields_No):
-                                Fields_Of_NewRecord.append(int(struct.unpack("i", File.read(4))[
-                                    0]))
-                            Records.append(Record(Fields_Of_NewRecord
-                                                  ))
-                        Pages.append(
-                            Page(NumberOfRecordsinPageHeader, Records))
+                                Fields_Of_NewRecord.append(
+                                    int(struct.unpack("i", File.read(4))[0])
+                                )
+                            Records.append(Record(Fields_Of_NewRecord))
+                        Pages.append(Page(NumberOfRecordsinPageHeader, Records))
 
-                    Files.append(File(
-                        NumberOfPageinFileHeader, NextFileinFileHeader, PreviousFileinFileHeader, Pages))
+                    Files.append(
+                        File(
+                            NumberOfPageinFileHeader,
+                            NextFileinFileHeader,
+                            PreviousFileinFileHeader,
+                            Pages,
+                        )
+                    )
                     File.close()
 
-            T = Type(Type_Name, File_No, Fields_No, Fields, Files)
-            self.Types.update({Type_Name: T})
+                T = Type(Type_Name, File_No, Fields_No, Fields, Files)
+                self.Types.update({str(Type_Name): T})
             self.SystemCatalogFile.close()
             print("Reading All Type Files is Compleated")
+
             print("Phase 2 ....Reading All indexFiles.... ")
             self.readindexFiles()
         except Exception as e:
             print(e)
             self.SystemCatalogFile.close()
-            os._exit(0)
 
     def readindexFiles(self):
         print("All indexFiles are being read...")
@@ -144,8 +149,7 @@ class SystemCatalog:
                 print(filepath)
                 TindexFile = open(filepath, "rb")
                 NumberOfRecords = struct.unpack("i", TindexFile.read(4))[0]
-                NumberOfRecordsPerFile = struct.unpack(
-                    "i", TindexFile.read(4))[0]
+                NumberOfRecordsPerFile = struct.unpack("i", TindexFile.read(4))[0]
                 print("In related indexFile we found")
                 print("The Number Of Records ", NumberOfRecords)
                 print("The Number Of Records Per File", NumberOfRecordsPerFile)
@@ -156,8 +160,9 @@ class SystemCatalog:
                     RecordID = struct.unpack("b", TindexFile.read(1))[0]
                     PrimaryKey = struct.unpack("i", TindexFile.read(4))[0]
                     Temp_Records_Array.append(
-                        Record_indexFile(int(FileID), int(PageID),
-                                         int(RecordID), int(PrimaryKey))
+                        Record_indexFile(
+                            int(FileID), int(PageID), int(RecordID), int(PrimaryKey)
+                        )
                     )
 
                 TI = indexFile(
@@ -179,17 +184,24 @@ class SystemCatalog:
                 TypeNameToWrite = self.complate(TypeName)
                 self.SystemCatalogFile.write(TypeNameToWrite.encode("utf-8"))
                 self.SystemCatalogFile.write(
-                    bytes([self.Types[TypeName].NumberOfFiles]))
+                    bytes([self.Types[TypeName].NumberOfFiles])
+                )
                 self.SystemCatalogFile.write(
-                    bytes([self.Types[TypeName].NumberOfFields]))
+                    bytes([self.Types[TypeName].NumberOfFields])
+                )
 
                 for i in range(self.Types[TypeName].NumberOfFields):
                     FN = self.complate(self.Types[TypeName].Fields_Names[i])
                     self.SystemCatalogFile.write(FN.encode("utf-8"))
                     index = 0
                 for File in self.Types[TypeName].Files:
-                    PATH = "Files/"+str(self.Types[TypeName].TypeName)+"/" + \
-                        str(self.Types[TypeName].TypeName)+str(index)
+                    PATH = (
+                        "Files/"
+                        + str(self.Types[TypeName].TypeName)
+                        + "/"
+                        + str(self.Types[TypeName].TypeName)
+                        + str(index)
+                    )
                     if not os.path.exists(PATH):
                         open(PATH, "a").close()
                     File_To_Write = open(PATH, "wb")
@@ -216,11 +228,9 @@ class SystemCatalog:
         for key in self.indexFiles:
             filename = "./indexFiles/" + str(key) + "index"
             TindexFile = open(filename, "wb")
-            TindexFile.write(struct.pack(
-                "i", self.indexFiles[key].Number_OF_Records))
+            TindexFile.write(struct.pack("i", self.indexFiles[key].Number_OF_Records))
             TindexFile.write(
-                struct.pack(
-                    "i", self.indexFiles[key].Max_Number_OF_Records_Per_File)
+                struct.pack("i", self.indexFiles[key].Max_Number_OF_Records_Per_File)
             )
             if len(self.indexFiles[key].Records) > 0:
                 for record in self.indexFiles[key].Records:
@@ -241,15 +251,16 @@ class DLL:
         self.SystemCatalog = SystemCatalog
 
     def Create_Type(self, TypeName, NumberOfFields, Fields_Names):
-        newType = Type(TypeName, 0, NumberOfFields, Fields_Names, [])
-        self.SystemCatalog.Types.update({TypeName: newType})
-        self.SystemCatalog.NumberOfTypes += 1
-        PATH = "./indexFiles/" + str(TypeName) + "index"
-        open(PATH, "wb")
-        maxNoofRecordsPerFile = int(2048 / (4 * NumberOfFields)) * 256
-        self.SystemCatalog.indexFiles.update(
-            {TypeName: indexFile(0, maxNoofRecordsPerFile, [])}
-        )
+        if not Check_If_Type_Exits(TypeName, self.SystemCatalog):
+            newType = Type(TypeName, 0, NumberOfFields, Fields_Names, [])
+            self.SystemCatalog.Types.update({TypeName: newType})
+            self.SystemCatalog.NumberOfTypes += 1
+            PATH = "./indexFiles/" + str(TypeName) + "index"
+            open(PATH, "wb")
+            maxNoofRecordsPerFile = int(2048 / (4 * NumberOfFields)) * 256
+            self.SystemCatalog.indexFiles.update(
+                {TypeName: indexFile(0, maxNoofRecordsPerFile, [])}
+            )
 
     def Delete_Type(self):
         print()
@@ -284,6 +295,15 @@ class DML:
                 main_indexFile.Records[index].RecordID += 1
                 if main_indexFile.Records[index].RecordID == MaxNumberOfRecordsPerPage:
                     main_indexFile.Records[index].RecordID = 0
+
+
+def Check_If_Type_Exits(TypeName, SystemCatalog):
+    print("Checking If Type Exits...")
+    for Type in SystemCatalog.Types:
+        print(Type)
+        if Type == TypeName:
+            print("The Type is found!!! ")
+            return True
 
 
 def insert_Record_To_indexFile(PrimaryKey, TheindexFile):
@@ -326,9 +346,8 @@ if not os.path.exists("Files"):
     os.mkdir("Files")
 with SystemCatalog() as f:
     d1 = DLL(f)
-    d1.Create_Type(
-        "Humans",
-        10,
-        ["age", "len", "spe", "age", "age", "age", "age", "age", "age", "age"],
-    )  # 16
-    d1.Create_Type("Cats", 4, ["age", "len", "spe", "smell"])  # 18
+
+    d1.Create_Type("1", 3, ["age", "len", "spe"])  # 16
+    d1.Create_Type("2", 4, ["age", "len", "spe", "smell"])  # 18
+    d1.Create_Type("3", 3, ["age", "len", "spe"])  # 16
+    d1.Create_Type("4", 4, ["agex", "lenx", "spex", "prox"])  # 16
