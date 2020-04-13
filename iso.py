@@ -95,22 +95,20 @@ class SystemCatalog:
         print("SystemCatalogFile is being read...")
         try:
             self.SystemCatalogFile = open("SystemCatalog", "rb")
-            self.NumberOfTypes = struct.unpack(
-                "i", self.SystemCatalogFile.read(4))[0]
+            self.NumberOfTypes = struct.unpack("i", self.SystemCatalogFile.read(4))[0]
             print(self.NumberOfTypes, " is read from SystemCatalog ")
 
             for i in range(self.NumberOfTypes):
 
-                Temp_Type_Name = self.SystemCatalogFile.read(
-                    16).decode("utf-8")
+                Temp_Type_Name = self.SystemCatalogFile.read(16).decode("utf-8")
                 Type_Name = re.sub(" ", "", Temp_Type_Name)
                 print(Type_Name)
 
-                File_No = struct.unpack("b", self.SystemCatalogFile.read(1))[0]
-                Fields_No = struct.unpack(
-                    "b", self.SystemCatalogFile.read(1))[0]
+                File_No = struct.unpack("B", self.SystemCatalogFile.read(1))[0]
+                Fields_No = struct.unpack("B", self.SystemCatalogFile.read(1))[0]
                 Fields = []
-
+                print("Type : ", i, " we have ", File_No, " File")
+                print("Type : ", i, " we have ", Fields_No, " Fields")
                 for b in range(Fields_No):
 
                     tempx = self.SystemCatalogFile.read(16).decode("utf-8")
@@ -118,37 +116,55 @@ class SystemCatalog:
                     Fields.append(tempx)
                 Files = []
                 for c in range(int(File_No)):
-                    print(
-                        "BUNU GORMEMEMEN LAZIMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM"
-                    )
-                    FileOpen = open("Files/"+str(Type_Name) +
-                                    "/"+str(Type_Name) + str(c), "rb")
 
-                    NumberOfRecordsinFileHeader = struct.unpack(
-                        "i", FileOpen.read(4))[0]
-                    NumberOfPageinFileHeader = struct.unpack(
-                        "b", FileOpen.read(1))[0]
-                    NextFileinFileHeader = struct.unpack(
-                        "b", FileOpen.read(1))[0]
-                    PreviousFileinFileHeader = struct.unpack(
-                        "b", FileOpen.read(1))[0]
+                    FileOpen = open(
+                        "Files/" + str(Type_Name) + "/" + str(Type_Name) + str(c), "rb"
+                    )
+
+                    NumberOfRecordsinFileHeader = struct.unpack("i", FileOpen.read(4))[
+                        0
+                    ]
+                    print(
+                        "In File ",
+                        c,
+                        " We have ",
+                        NumberOfRecordsinFileHeader,
+                        " Total Records",
+                    )
+
+                    NumberOfPageinFileHeader = struct.unpack("B", FileOpen.read(1))[0]
+                    print(
+                        "In File ",
+                        c,
+                        " We have ",
+                        NumberOfPageinFileHeader,
+                        " Total Pages",
+                    )
+                    NextFileinFileHeader = struct.unpack("B", FileOpen.read(1))[0]
+
+                    PreviousFileinFileHeader = struct.unpack("B", FileOpen.read(1))[0]
                     Pages = []
                     for d in range(int(NumberOfPageinFileHeader)):
 
-                        NumberOfRecordsinPageHeader = struct.unpack("b", FileOpen.read(1))[
-                            0
-                        ]
+                        NumberOfRecordsinPageHeader = struct.unpack(
+                            "B", FileOpen.read(1)
+                        )[0]
+                        print(
+                            "In page ",
+                            d,
+                            " We have ",
+                            NumberOfRecordsinPageHeader,
+                            " Records",
+                        )
                         Records = []
                         for e in range(int(NumberOfRecordsinPageHeader)):
                             Fields_Of_NewRecord = []
                             for f in range(Fields_No):
                                 Fields_Of_NewRecord.append(
-                                    int(struct.unpack(
-                                        "i", FileOpen.read(4))[0])
+                                    int(struct.unpack("i", FileOpen.read(4))[0])
                                 )
                             Records.append(Record(Fields_Of_NewRecord))
-                        Pages.append(
-                            Page(NumberOfRecordsinPageHeader, Records))
+                        Pages.append(Page(NumberOfRecordsinPageHeader, Records))
 
                     Files.append(
                         File(
@@ -177,24 +193,20 @@ class SystemCatalog:
         for TypeName in self.Types:
             try:
                 filepath = "./indexFiles/" + str(TypeName) + "index"
-                print(filepath)
+
                 TindexFile = open(filepath, "rb")
                 NumberOfRecords = struct.unpack("i", TindexFile.read(4))[0]
-                NumberOfRecordsPerFile = struct.unpack(
-                    "i", TindexFile.read(4))[0]
-                print("In related indexFile we found")
-                print("The Number Of Records ", NumberOfRecords)
-                print("The Number Of Records Per File", NumberOfRecordsPerFile)
+                NumberOfRecordsPerFile = struct.unpack("i", TindexFile.read(4))[0]
+
                 Temp_Records_Array = []
                 for i in range(NumberOfRecords):
-                    FileID = struct.unpack("b", TindexFile.read(1))[0]
-                    PageID = struct.unpack("b", TindexFile.read(1))[0]
-                    RecordID = struct.unpack("b", TindexFile.read(1))[0]
+                    FileID = struct.unpack("B", TindexFile.read(1))[0]
+                    PageID = struct.unpack("B", TindexFile.read(1))[0]
+                    RecordID = struct.unpack("B", TindexFile.read(1))[0]
                     PrimaryKey = struct.unpack("i", TindexFile.read(4))[0]
                     Temp_Records_Array.append(
                         Record_indexFile(
-                            int(FileID), int(PageID), int(
-                                RecordID), int(PrimaryKey)
+                            int(FileID), int(PageID), int(RecordID), int(PrimaryKey)
                         )
                     )
 
@@ -213,43 +225,53 @@ class SystemCatalog:
         try:
             self.SystemCatalogFile = open("SystemCatalog", "wb")
             self.SystemCatalogFile.write(struct.pack("i", self.NumberOfTypes))
+            print("Writing self.NumberOfTypes=", self.NumberOfTypes)
             for TypeName in self.Types:
                 TypeNameToWrite = self.complate(TypeName)
+                print("Writing TypeNameToWrite=", TypeNameToWrite)
                 self.SystemCatalogFile.write(TypeNameToWrite.encode("utf-8"))
                 self.SystemCatalogFile.write(
                     bytes([self.Types[TypeName].NumberOfFiles])
                 )
+                print(
+                    "Writing self.Types[TypeName].NumberOfFiles=",
+                    self.Types[TypeName].NumberOfFiles,
+                )
                 self.SystemCatalogFile.write(
                     bytes([self.Types[TypeName].NumberOfFields])
                 )
-
+                print(
+                    "Writing self.Types[TypeName].NumberOfFields=",
+                    self.Types[TypeName].NumberOfFields,
+                )
                 for i in range(self.Types[TypeName].NumberOfFields):
                     FN = self.complate(self.Types[TypeName].Fields_Names[i])
                     self.SystemCatalogFile.write(FN.encode("utf-8"))
                     index = 0
                 for File in self.Types[TypeName].Files:
-                    PATH = "Files/" + str(TypeName) + \
-                        "/" + str(TypeName) + str(index)
+                    PATH = "Files/" + str(TypeName) + "/" + str(TypeName) + str(index)
 
                     if not os.path.exists(PATH):
                         print("Creating a new Type-File")
                         open(PATH, "a").close()
                     File_To_Write = open(PATH, "wb")
-
+                    print("Writing File.NumberOfRecords=", File.NumberOfRecords)
                     File_To_Write.write(struct.pack("i", File.NumberOfRecords))
-                    if File.NumberOfPages > 250:
-                        print("File Number Of Pages : ", File.NumberOfPages)
+                    print("Writing File.NumberOfPages=", File.NumberOfPages)
                     File_To_Write.write(bytes([File.NumberOfPages]))
+                    print("Writing File.NextFile=", File.NextFile)
                     File_To_Write.write(bytes([File.NextFile]))
+
+                    print("Writing File.PreviousFile=", File.PreviousFile)
                     File_To_Write.write(bytes([File.PreviousFile]))
                     try:
                         for Page in File.Pages:
-
+                            print("Writing Page.NumberOfRecords=", Page.NumberOfRecords)
                             File_To_Write.write(bytes([Page.NumberOfRecords]))
                             for Record in Page.Records:
                                 for Field in Record.Fields:
-                                    File_To_Write.write(
-                                        struct.pack("i", Field))
+
+                                    File_To_Write.write(struct.pack("i", Field))
 
                     except Exception as e:
                         print(e)
@@ -265,16 +287,15 @@ class SystemCatalog:
     def writebackindexFiles(self):
         print("All indexFiles are being written back...")
         for x in self.indexFiles:
-            print(x, "'indexFile has ",
-                  self.indexFiles[x].Number_OF_Records, " records")
+            print(
+                x, "'indexFile has ", self.indexFiles[x].Number_OF_Records, " records"
+            )
         for key in self.indexFiles:
             filename = "./indexFiles/" + str(key) + "index"
             TindexFile = open(filename, "wb")
-            TindexFile.write(struct.pack(
-                "i", self.indexFiles[key].Number_OF_Records))
+            TindexFile.write(struct.pack("i", self.indexFiles[key].Number_OF_Records))
             TindexFile.write(
-                struct.pack(
-                    "i", self.indexFiles[key].Max_Number_OF_Records_Per_File)
+                struct.pack("i", self.indexFiles[key].Max_Number_OF_Records_Per_File)
             )
             if len(self.indexFiles[key].Records) > 0:
                 for record in self.indexFiles[key].Records:
@@ -396,17 +417,27 @@ class DML:
                     Type.Files[main_indexFile.Records[index].FileID].Pages[
                         0
                     ].Records.insert(0, newRecord)
+                    index += 1
                     continue
-                if Type.Files[main_indexFile.Records[index].FileID].NumberOfPages == main_indexFile.Records[index].PageID:
+                if (
+                    Type.Files[main_indexFile.Records[index].FileID].NumberOfPages
+                    == main_indexFile.Records[index].PageID
+                ):
+                    print(
+                        "Suan burdayım ve ",
+                        Type.Files[main_indexFile.Records[index].FileID].NumberOfPages,
+                        " ",
+                        index,
+                        " ",
+                        main_indexFile.Records[index].PageID,
+                    )
                     newPage = Page(0, [])
-                    Type.Files[main_indexFile.Records[index].FileID].addPage(
-                        newPage)
+                    Type.Files[main_indexFile.Records[index].FileID].addPage(newPage)
 
                 if (
                     Type.Files[main_indexFile.Records[index].FileID]
                     # burda pageıd 1 ama page 1 daha yaratılmamıs
-                    .Pages[main_indexFile.Records[index].PageID]
-                    .NumberOfRecords
+                    .Pages[main_indexFile.Records[index].PageID].NumberOfRecords
                     < MaxNumberOfRecordsPerPage
                 ):
                     Type.Files[main_indexFile.Records[index].FileID].Pages[
@@ -420,7 +451,6 @@ class DML:
                 Type.Files[main_indexFile.Records[index].FileID].Pages[
                     main_indexFile.Records[index].PageID
                 ].Records.insert(0, newRecord)
-                continue
 
             index += 1
 
@@ -439,7 +469,7 @@ def insert_Record_To_indexFile(Fields, TheindexFile, Type, MaxNumberOfRecordsPer
 
     index = 0
     PrimaryKey = Fields[0]
-    RID, FID, PID = 1, 1, 1
+
     # print(TheindexFile.Records)
     for RecordN in TheindexFile.Records:
 
@@ -448,9 +478,6 @@ def insert_Record_To_indexFile(Fields, TheindexFile, Type, MaxNumberOfRecordsPer
         index += 1
 
     if index == 0:
-        """FID = TheindexFile.Records[0].FileID
-        PID = TheindexFile.Records[0].PageID
-        RID = TheindexFile.Records[0].RecordID"""
 
         newRecord = Record_indexFile(0, 0, 0, PrimaryKey)
         TheindexFile.Records.insert(index, newRecord)
@@ -487,6 +514,7 @@ with SystemCatalog() as f:
     d1.Create_Type("6", 4, ["age", "len", "spe", "smell"])  # 18
     d1.Create_Type("7", 3, ["age", "len", "spe"])  # 16
     d1.Create_Type("8", 4, ["agex", "lenx", "spex", "prox"])  # 16
+
     index = 1500
     lists = []
     for i in range(1500):
@@ -496,9 +524,22 @@ with SystemCatalog() as f:
     while index > 0:
         PK = lists.pop(randrange(len(lists)))
         if PK == old:
+            print(
+                "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            )
             os._exit(0)
         old = PK
         lists2.append(PK)
-        d2.Create_Record("5", [PK, 172, 45])
+        d2.Create_Record("5", [PK, 1, 2])
         index -= 1
-    print(lists2)
+
+    for File in f.Types["5"].Files:
+        for Page in File.Pages:
+            print(
+                "In page ",
+                Page,
+                " We have ",
+                Page.NumberOfRecords,
+                "=",
+                len(Page.Records),
+            )
