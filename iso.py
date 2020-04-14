@@ -99,16 +99,19 @@ class SystemCatalog:
         print("SystemCatalogFile is being read...")
         try:
             self.SystemCatalogFile = open("SystemCatalog", "rb")
-            self.NumberOfTypes = struct.unpack("i", self.SystemCatalogFile.read(4))[0]
+            self.NumberOfTypes = struct.unpack(
+                "i", self.SystemCatalogFile.read(4))[0]
             print("There are ", self.NumberOfTypes, " Number Of Types.")
 
             for i in range(self.NumberOfTypes):
 
-                Temp_Type_Name = self.SystemCatalogFile.read(16).decode("utf-8")
+                Temp_Type_Name = self.SystemCatalogFile.read(
+                    16).decode("utf-8")
                 Type_Name = re.sub(" ", "", Temp_Type_Name)
 
                 File_No = struct.unpack("B", self.SystemCatalogFile.read(1))[0]
-                Fields_No = struct.unpack("B", self.SystemCatalogFile.read(1))[0]
+                Fields_No = struct.unpack(
+                    "B", self.SystemCatalogFile.read(1))[0]
                 Fields = []
 
                 for b in range(Fields_No):
@@ -120,15 +123,19 @@ class SystemCatalog:
                 for c in range(int(File_No)):
 
                     FileOpen = open(
-                        "Files/" + str(Type_Name) + "/" + str(Type_Name) + str(c), "rb"
+                        "Files/" + str(Type_Name) + "/" +
+                        str(Type_Name) + str(c), "rb"
                     )
 
                     NumberOfRecordsinFileHeader = struct.unpack("i", FileOpen.read(4))[
                         0
                     ]
-                    NumberOfPageinFileHeader = struct.unpack("B", FileOpen.read(1))[0]
-                    NextFileinFileHeader = struct.unpack("B", FileOpen.read(1))[0]
-                    PreviousFileinFileHeader = struct.unpack("B", FileOpen.read(1))[0]
+                    NumberOfPageinFileHeader = struct.unpack(
+                        "B", FileOpen.read(1))[0]
+                    NextFileinFileHeader = struct.unpack(
+                        "B", FileOpen.read(1))[0]
+                    PreviousFileinFileHeader = struct.unpack(
+                        "B", FileOpen.read(1))[0]
                     Pages = []
                     for d in range(int(NumberOfPageinFileHeader)):
 
@@ -140,10 +147,12 @@ class SystemCatalog:
                             Fields_Of_NewRecord = []
                             for f in range(Fields_No):
                                 Fields_Of_NewRecord.append(
-                                    int(struct.unpack("i", FileOpen.read(4))[0])
+                                    int(struct.unpack(
+                                        "i", FileOpen.read(4))[0])
                                 )
                             Records.append(Record(Fields_Of_NewRecord))
-                        Pages.append(Page(NumberOfRecordsinPageHeader, Records))
+                        Pages.append(
+                            Page(NumberOfRecordsinPageHeader, Records))
 
                     Files.append(
                         File(
@@ -172,10 +181,11 @@ class SystemCatalog:
         for TypeName in self.Types:
             try:
                 filepath = "./indexFiles/" + str(TypeName) + "index"
-                print(filepath)
+
                 TindexFile = open(filepath, "rb")
                 NumberOfRecords = struct.unpack("i", TindexFile.read(4))[0]
-                NumberOfRecordsPerFile = struct.unpack("i", TindexFile.read(4))[0]
+                NumberOfRecordsPerFile = struct.unpack(
+                    "i", TindexFile.read(4))[0]
 
                 Temp_Records_Array = []
                 for i in range(NumberOfRecords):
@@ -185,7 +195,8 @@ class SystemCatalog:
                     PrimaryKey = struct.unpack("i", TindexFile.read(4))[0]
                     Temp_Records_Array.append(
                         Record_indexFile(
-                            int(FileID), int(PageID), int(RecordID), int(PrimaryKey)
+                            int(FileID), int(PageID), int(
+                                RecordID), int(PrimaryKey)
                         )
                     )
 
@@ -220,7 +231,8 @@ class SystemCatalog:
                     self.SystemCatalogFile.write(FN.encode("utf-8"))
                     index = 0
                 for File in self.Types[TypeName].Files:
-                    PATH = "Files/" + str(TypeName) + "/" + str(TypeName) + str(index)
+                    PATH = "Files/" + str(TypeName) + \
+                        "/" + str(TypeName) + str(index)
 
                     if not os.path.exists(PATH):
                         print("Creating a new Type-File")
@@ -238,7 +250,8 @@ class SystemCatalog:
                             File_To_Write.write(bytes([Page.NumberOfRecords]))
                             for Record in Page.Records:
                                 for Field in Record.Fields:
-                                    File_To_Write.write(struct.pack("i", Field))
+                                    File_To_Write.write(
+                                        struct.pack("i", Field))
 
                     except Exception as e:
                         print(e)
@@ -257,9 +270,11 @@ class SystemCatalog:
         for key in self.indexFiles:
             filename = "./indexFiles/" + str(key) + "index"
             TindexFile = open(filename, "wb")
-            TindexFile.write(struct.pack("i", self.indexFiles[key].Number_OF_Records))
+            TindexFile.write(struct.pack(
+                "i", self.indexFiles[key].Number_OF_Records))
             TindexFile.write(
-                struct.pack("i", self.indexFiles[key].Max_Number_OF_Records_Per_File)
+                struct.pack(
+                    "i", self.indexFiles[key].Max_Number_OF_Records_Per_File)
             )
             if len(self.indexFiles[key].Records) > 0:
                 for record in self.indexFiles[key].Records:
@@ -298,6 +313,7 @@ class DLL:
         print("Deleting Type -", TypeName)
         print(str(TypeName) + "index")
         del self.SystemCatalog.Types[TypeName]
+        self.SystemCatalog.NumberOfTypes -= 1
         del self.SystemCatalog.indexFiles[TypeName]
         os.system("rm ./indexFiles/" + str(TypeName) + "index")
         os.system("rm -rf ./Files/" + str(TypeName))
@@ -389,13 +405,15 @@ class DML:
                     Type.Files[main_indexFile.Records[index].FileID].Pages[
                         0
                     ].Records.insert(0, newRecord)
+                    index += 1
                     continue
                 if (
                     Type.Files[main_indexFile.Records[index].FileID].NumberOfPages
                     == main_indexFile.Records[index].PageID
                 ):
                     newPage = Page(0, [])
-                    Type.Files[main_indexFile.Records[index].FileID].addPage(newPage)
+                    Type.Files[main_indexFile.Records[index].FileID].addPage(
+                        newPage)
 
                 if (
                     Type.Files[main_indexFile.Records[index].FileID]
@@ -422,7 +440,7 @@ class DML:
             self.SystemCatalog.indexFiles[TypeName].Records,
             0,
             len(self.SystemCatalog.indexFiles[TypeName].Records) - 1,
-            new_Fields_Values[0],
+            PrimaryKey,
         )
         Record = Returned_Tupple[0]
         FileID = Record.FileID
@@ -441,6 +459,7 @@ class DML:
             TypeName
         ].Max_Number_OF_Records_Per_File
         MaxNumberOfRecordsPerPage = int(MaxNumberOfRecordsPerFile / 255)
+        main_indexFile = self.SystemCatalog.indexFiles[TypeName]
         while index < self.SystemCatalog.indexFiles[TypeName].Number_OF_Records:
 
             main_indexFile.Records[index].RecordID -= 1
@@ -459,22 +478,40 @@ class DML:
                         .Records[0]
                     )
 
+                    self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID].Pages[255].Records.append(
+                        Record_poped)
+
+                    if self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID + 1].NextFile == 0:
+                        self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID +
+                                                                 1].NumberOfRecords -= 1
+                        if self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID + 1].NumberOfRecords == 0:
+                            self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID + 1].NextFile = 0
+                            del self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID + 1]
+                            self.SystemCatalog.Types[TypeName].NumberOfFiles -= 1
+                            return
+                        NumberOfPages = self.SystemCatalog.Types[TypeName].Files[
+                            main_indexFile.Records[index].FileID + 1].NumberOfPages
+                        self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID +
+                                                                 1].Pages[NumberOfPages-1].NumberOfRecords -= 1
+
+                        if self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID + 1].Pages[NumberOfPages-1].NumberOfRecords == 0:
+
+                            self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID +
+                                                                     1].NumberOfPages -= 1
+                            del self.SystemCatalog.Types[TypeName].Files[
+                                main_indexFile.Records[index].FileID + 1].Pages[NumberOfPages-1]
+                    index += 1
+                    continue
+
+                Record_poped = (
                     self.SystemCatalog.Types[TypeName]
-                        .Files[main_indexFile.Records[index].FileID]
-                        .Pages[255]
-                        .Records.append(Record_poped)
+                    .Files[main_indexFile.Records[index].FileID]
+                        .Pages[main_indexFile.Records[index].PageID+1]
+                        .Records[0]
+                )
 
-                    if self.SystemCatalog.Types[TypeName]
-                        .Files[main_indexFile.Records[index].FileID + 1].NumberOfRecords==0:
-                        del self.SystemCatalog.Types[TypeName]
-                        .Files[main_indexFile.Records[index].FileID + 1]
-                        return 
-                    
-                    
-
-
-
-
+                self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index]
+                                                         .FileID].Pages[main_indexFile.Records[index].PageID].Records.append(Record_poped)
             index += 1
 
     def Update_Record(self, TypeName, new_Fields_Values):
@@ -529,7 +566,7 @@ class DML:
             print(i, "th Field is : ", Fields[i], " ", end="")
 
     def List_Records(self, TypeName):
-        Fields_No = self.SystemCatalog.Types[TypeName].NumberOfFields
+
         for File in self.SystemCatalog.Types[TypeName].Files:
             for Page in File.Pages:
                 for Record in Page.Records:
@@ -572,7 +609,7 @@ def FindRecord(arr, l, r, x):
 
 
 def FindPlaceOfRecord(arr, l, r, x):
-    print(l, r)
+
     if r == l:
         if arr[r].PrimaryKey > x:
             # arr.insert(r, x)
@@ -661,7 +698,7 @@ with SystemCatalog() as f:
     d1.Create_Type("7", 3, ["age", "len", "spe"])  # 16
     d1.Create_Type("8", 4, ["agex", "lenx", "spex", "prox"])  # 16
 
-    limit = 1500
+    limit = 450
     index = limit
     lists = []
     for i in range(limit):
@@ -682,7 +719,10 @@ with SystemCatalog() as f:
     print("After...........")
     d2.Search_Record("5", 36)
     d2.List_Records("5")
-"""
+
+    print("lists2 : ", lists2)
+    """
+    d2.Delete_Record("5", 223)
     for Record in f.indexFiles["5"].Records:
         print(
             Record.FileID,
