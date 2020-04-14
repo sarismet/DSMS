@@ -468,7 +468,7 @@ class DML:
                 main_indexFile.Records[index].PageID -= 1
                 if main_indexFile.Records[index].PageID == -1:
 
-                    main_indexFile.Records[index].PageID = 255
+                    main_indexFile.Records[index].PageID = 254
                     main_indexFile.Records[index].FileID -= 1
 
                     Record_poped = (
@@ -478,7 +478,7 @@ class DML:
                         .Records[0]
                     )
 
-                    self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID].Pages[255].Records.append(
+                    self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID].Pages[254].Records.append(
                         Record_poped)
 
                     if self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID + 1].NextFile == 0:
@@ -698,7 +698,7 @@ with SystemCatalog() as f:
     d1.Create_Type("7", 3, ["age", "len", "spe"])  # 16
     d1.Create_Type("8", 4, ["agex", "lenx", "spex", "prox"])  # 16
 
-    limit = 450
+    limit = 45000
     index = limit
     lists = []
     for i in range(limit):
@@ -723,7 +723,7 @@ with SystemCatalog() as f:
     print("lists2 : ", lists2)
     """
     d2.Delete_Record("5", 223)
-    for Record in f.indexFiles["5"].Records:
+    for Record in f.indexFiles["5"].Records[43000:43400]:
         print(
             Record.FileID,
             " ",
