@@ -99,19 +99,16 @@ class SystemCatalog:
         print("SystemCatalogFile is being read...")
         try:
             self.SystemCatalogFile = open("SystemCatalog", "rb")
-            self.NumberOfTypes = struct.unpack(
-                "i", self.SystemCatalogFile.read(4))[0]
+            self.NumberOfTypes = struct.unpack("i", self.SystemCatalogFile.read(4))[0]
             print("There are ", self.NumberOfTypes, " Number Of Types.")
 
             for i in range(self.NumberOfTypes):
 
-                Temp_Type_Name = self.SystemCatalogFile.read(
-                    16).decode("utf-8")
+                Temp_Type_Name = self.SystemCatalogFile.read(16).decode("utf-8")
                 Type_Name = re.sub(" ", "", Temp_Type_Name)
 
                 File_No = struct.unpack("B", self.SystemCatalogFile.read(1))[0]
-                Fields_No = struct.unpack(
-                    "B", self.SystemCatalogFile.read(1))[0]
+                Fields_No = struct.unpack("B", self.SystemCatalogFile.read(1))[0]
                 Fields = []
 
                 for b in range(Fields_No):
@@ -122,34 +119,31 @@ class SystemCatalog:
                 Files = []
                 for c in range(int(File_No)):
 
-                    FileOpen = open("Files/"+str(Type_Name) +
-                                    "/"+str(Type_Name) + str(c), "rb")
+                    FileOpen = open(
+                        "Files/" + str(Type_Name) + "/" + str(Type_Name) + str(c), "rb"
+                    )
 
-                    NumberOfRecordsinFileHeader = struct.unpack(
-                        "i", FileOpen.read(4))[0]
-                    NumberOfPageinFileHeader = struct.unpack(
-                        "B", FileOpen.read(1))[0]
-                    NextFileinFileHeader = struct.unpack(
-                        "B", FileOpen.read(1))[0]
-                    PreviousFileinFileHeader = struct.unpack(
-                        "B", FileOpen.read(1))[0]
+                    NumberOfRecordsinFileHeader = struct.unpack("i", FileOpen.read(4))[
+                        0
+                    ]
+                    NumberOfPageinFileHeader = struct.unpack("B", FileOpen.read(1))[0]
+                    NextFileinFileHeader = struct.unpack("B", FileOpen.read(1))[0]
+                    PreviousFileinFileHeader = struct.unpack("B", FileOpen.read(1))[0]
                     Pages = []
                     for d in range(int(NumberOfPageinFileHeader)):
 
-                        NumberOfRecordsinPageHeader = struct.unpack("B", FileOpen.read(1))[
-                            0
-                        ]
+                        NumberOfRecordsinPageHeader = struct.unpack(
+                            "B", FileOpen.read(1)
+                        )[0]
                         Records = []
                         for e in range(int(NumberOfRecordsinPageHeader)):
                             Fields_Of_NewRecord = []
                             for f in range(Fields_No):
                                 Fields_Of_NewRecord.append(
-                                    int(struct.unpack(
-                                        "i", FileOpen.read(4))[0])
+                                    int(struct.unpack("i", FileOpen.read(4))[0])
                                 )
                             Records.append(Record(Fields_Of_NewRecord))
-                        Pages.append(
-                            Page(NumberOfRecordsinPageHeader, Records))
+                        Pages.append(Page(NumberOfRecordsinPageHeader, Records))
 
                     Files.append(
                         File(
@@ -181,8 +175,7 @@ class SystemCatalog:
                 print(filepath)
                 TindexFile = open(filepath, "rb")
                 NumberOfRecords = struct.unpack("i", TindexFile.read(4))[0]
-                NumberOfRecordsPerFile = struct.unpack(
-                    "i", TindexFile.read(4))[0]
+                NumberOfRecordsPerFile = struct.unpack("i", TindexFile.read(4))[0]
 
                 Temp_Records_Array = []
                 for i in range(NumberOfRecords):
@@ -192,8 +185,7 @@ class SystemCatalog:
                     PrimaryKey = struct.unpack("i", TindexFile.read(4))[0]
                     Temp_Records_Array.append(
                         Record_indexFile(
-                            int(FileID), int(PageID), int(
-                                RecordID), int(PrimaryKey)
+                            int(FileID), int(PageID), int(RecordID), int(PrimaryKey)
                         )
                     )
 
@@ -228,8 +220,7 @@ class SystemCatalog:
                     self.SystemCatalogFile.write(FN.encode("utf-8"))
                     index = 0
                 for File in self.Types[TypeName].Files:
-                    PATH = "Files/" + str(TypeName) + \
-                        "/" + str(TypeName) + str(index)
+                    PATH = "Files/" + str(TypeName) + "/" + str(TypeName) + str(index)
 
                     if not os.path.exists(PATH):
                         print("Creating a new Type-File")
@@ -247,8 +238,7 @@ class SystemCatalog:
                             File_To_Write.write(bytes([Page.NumberOfRecords]))
                             for Record in Page.Records:
                                 for Field in Record.Fields:
-                                    File_To_Write.write(
-                                        struct.pack("i", Field))
+                                    File_To_Write.write(struct.pack("i", Field))
 
                     except Exception as e:
                         print(e)
@@ -267,11 +257,9 @@ class SystemCatalog:
         for key in self.indexFiles:
             filename = "./indexFiles/" + str(key) + "index"
             TindexFile = open(filename, "wb")
-            TindexFile.write(struct.pack(
-                "i", self.indexFiles[key].Number_OF_Records))
+            TindexFile.write(struct.pack("i", self.indexFiles[key].Number_OF_Records))
             TindexFile.write(
-                struct.pack(
-                    "i", self.indexFiles[key].Max_Number_OF_Records_Per_File)
+                struct.pack("i", self.indexFiles[key].Max_Number_OF_Records_Per_File)
             )
             if len(self.indexFiles[key].Records) > 0:
                 for record in self.indexFiles[key].Records:
@@ -308,11 +296,11 @@ class DLL:
 
     def Delete_Type(self, TypeName):
         print("Deleting Type -", TypeName)
-        print(str(TypeName)+"index")
+        print(str(TypeName) + "index")
         del self.SystemCatalog.Types[TypeName]
         del self.SystemCatalog.indexFiles[TypeName]
-        os.system("rm ./indexFiles/"+str(TypeName)+"index")
-        os.system("rm -rf ./Files/"+str(TypeName))
+        os.system("rm ./indexFiles/" + str(TypeName) + "index")
+        os.system("rm -rf ./Files/" + str(TypeName))
         print("The operation of deleting type is compleated.")
 
     def List_All_Types(self):
@@ -402,16 +390,17 @@ class DML:
                         0
                     ].Records.insert(0, newRecord)
                     continue
-                if Type.Files[main_indexFile.Records[index].FileID].NumberOfPages == main_indexFile.Records[index].PageID:
+                if (
+                    Type.Files[main_indexFile.Records[index].FileID].NumberOfPages
+                    == main_indexFile.Records[index].PageID
+                ):
                     newPage = Page(0, [])
-                    Type.Files[main_indexFile.Records[index].FileID].addPage(
-                        newPage)
+                    Type.Files[main_indexFile.Records[index].FileID].addPage(newPage)
 
                 if (
                     Type.Files[main_indexFile.Records[index].FileID]
                     # burda pageıd 1 ama page 1 daha yaratılmamıs
-                    .Pages[main_indexFile.Records[index].PageID]
-                    .NumberOfRecords
+                    .Pages[main_indexFile.Records[index].PageID].NumberOfRecords
                     < MaxNumberOfRecordsPerPage
                 ):
                     Type.Files[main_indexFile.Records[index].FileID].Pages[
@@ -428,19 +417,124 @@ class DML:
 
             index += 1
 
+    def Delete_Record(self, TypeName, PrimaryKey):
+        Returned_Tupple = FindRecord(
+            self.SystemCatalog.indexFiles[TypeName].Records,
+            0,
+            len(self.SystemCatalog.indexFiles[TypeName].Records) - 1,
+            new_Fields_Values[0],
+        )
+        Record = Returned_Tupple[0]
+        FileID = Record.FileID
+        PageID = Record.PageID
+        RecordID = Record.RecordID
+        del (
+            self.SystemCatalog.Types[TypeName]
+            .Files[FileID]
+            .Pages[PageID]
+            .Records[RecordID]
+        )
+        self.SystemCatalog.indexFiles[TypeName].Number_OF_Records -= 1
+        del self.SystemCatalog.indexFiles[TypeName].Records[Returned_Tupple[1]]
+        index = Returned_Tupple[1]
+        MaxNumberOfRecordsPerFile = self.SystemCatalog.indexFiles[
+            TypeName
+        ].Max_Number_OF_Records_Per_File
+        MaxNumberOfRecordsPerPage = int(MaxNumberOfRecordsPerFile / 255)
+        while index < self.SystemCatalog.indexFiles[TypeName].Number_OF_Records:
+
+            main_indexFile.Records[index].RecordID -= 1
+            if main_indexFile.Records[index].RecordID == -1:
+                main_indexFile.Records[index].RecordID = MaxNumberOfRecordsPerPage - 1
+                main_indexFile.Records[index].PageID -= 1
+                if main_indexFile.Records[index].PageID == -1:
+
+                    main_indexFile.Records[index].PageID = 255
+                    main_indexFile.Records[index].FileID -= 1
+
+                    Record_poped = (
+                        self.SystemCatalog.Types[TypeName]
+                        .Files[main_indexFile.Records[index].FileID + 1]
+                        .Pages[0]
+                        .Records[0]
+                    )
+
+                    self.SystemCatalog.Types[TypeName]
+                        .Files[main_indexFile.Records[index].FileID]
+                        .Pages[255]
+                        .Records.append(Record_poped)
+
+                    if self.SystemCatalog.Types[TypeName]
+                        .Files[main_indexFile.Records[index].FileID + 1].NumberOfRecords==0:
+                        del self.SystemCatalog.Types[TypeName]
+                        .Files[main_indexFile.Records[index].FileID + 1]
+                        return 
+                    
+                    
+
+
+
+
+            index += 1
+
     def Update_Record(self, TypeName, new_Fields_Values):
-        Record = binarySearch(self.SystemCatalog.indexFiles[TypeName].Records, 0, len(
-            self.SystemCatalog.indexFiles[TypeName].Records)-1, new_Fields_Values[0])
+        Record = FindRecord(
+            self.SystemCatalog.indexFiles[TypeName].Records,
+            0,
+            len(self.SystemCatalog.indexFiles[TypeName].Records) - 1,
+            new_Fields_Values[0],
+        )[0]
         FileID = Record.FileID
         PageID = Record.PageID
         RecordID = Record.RecordID
         print(
-            "Before : ", self.SystemCatalog.Types[TypeName].Files[FileID].Pages[PageID].Records[RecordID].Fields)
-        self.SystemCatalog.Types[TypeName].Files[FileID].Pages[PageID].Records[RecordID].Update_Fields(
-            new_Fields_Values)
-        print("After : ",
-              self.SystemCatalog.Types[TypeName].Files[FileID].Pages[PageID].Records[RecordID].Fields)
+            "Before : ",
+            self.SystemCatalog.Types[TypeName]
+            .Files[FileID]
+            .Pages[PageID]
+            .Records[RecordID]
+            .Fields,
+        )
+        self.SystemCatalog.Types[TypeName].Files[FileID].Pages[PageID].Records[
+            RecordID
+        ].Update_Fields(new_Fields_Values)
+        print(
+            "After : ",
+            self.SystemCatalog.Types[TypeName]
+            .Files[FileID]
+            .Pages[PageID]
+            .Records[RecordID]
+            .Fields,
+        )
         print("Update is completed")
+
+    def Search_Record(self, TypeName, PrimaryKey):
+        Record = FindRecord(
+            self.SystemCatalog.indexFiles[TypeName].Records,
+            0,
+            len(self.SystemCatalog.indexFiles[TypeName].Records) - 1,
+            PrimaryKey,
+        )[0]
+        FileID = Record.FileID
+        PageID = Record.PageID
+        RecordID = Record.RecordID
+        Fields = (
+            self.SystemCatalog.Types[TypeName]
+            .Files[FileID]
+            .Pages[PageID]
+            .Records[RecordID]
+            .Fields
+        )
+        for i in range(len(Fields)):
+            print(i, "th Field is : ", Fields[i], " ", end="")
+
+    def List_Records(self, TypeName):
+        Fields_No = self.SystemCatalog.Types[TypeName].NumberOfFields
+        for File in self.SystemCatalog.Types[TypeName].Files:
+            for Page in File.Pages:
+                for Record in Page.Records:
+                    for Field in Record.Fields:
+                        print("th Field is : ", Field, " ", end="")
 
 
 def Check_If_Type_Exits(TypeName, SystemCatalog):
@@ -451,34 +545,64 @@ def Check_If_Type_Exits(TypeName, SystemCatalog):
             print("The Type is found!!! ")
             return True
 
-# Python Program for recursive binary search.
 
-# Returns index of x in arr if present, else -1
-
-
-def binarySearch(arr, l, r, x):
+def FindRecord(arr, l, r, x):
 
     # Check base case
     if r >= l:
 
-        mid = l + (r - l)//2
+        mid = l + (r - l) // 2
 
         # If element is present at the middle itself
         if arr[mid].PrimaryKey == x:
-            return arr[mid]
+            return (arr[mid], mid)
 
         # If element is smaller than mid, then it can only
         # be present in left subarray
         elif arr[mid].PrimaryKey > x:
-            return binarySearch(arr, l, mid-1, x)
+            return FindRecord(arr, l, mid - 1, x)
 
         # Else the element can only be present in right subarray
         else:
-            return binarySearch(arr, mid+1, r, x)
+            return FindRecord(arr, mid + 1, r, x)
 
     else:
         # Element is not present in the array
         return -1
+
+
+def FindPlaceOfRecord(arr, l, r, x):
+    print(l, r)
+    if r == l:
+        if arr[r].PrimaryKey > x:
+            # arr.insert(r, x)
+            return r
+
+        else:
+            # arr.insert(r + 1, x)
+            return r + 1
+    elif (r - l) == 1:
+        if arr[l].PrimaryKey < x and arr[r].PrimaryKey > x:
+            # arr.insert(l, x)
+            return r
+        elif arr[l].PrimaryKey > x:
+            return FindPlaceOfRecord(arr, l, l, x)
+        elif arr[r].PrimaryKey < x:
+            return FindPlaceOfRecord(arr, r, r, x)
+    elif r >= l:
+
+        mid = l + (r - l) // 2
+
+        if arr[mid - 1].PrimaryKey < x and arr[mid].PrimaryKey > x:
+            # arr.insert(mid, x)
+            return mid
+
+        elif arr[mid - 1].PrimaryKey > x:
+            return FindPlaceOfRecord(arr, l, mid - 1, x)
+
+        # Else the element can only be present in right subarray
+        elif arr[mid].PrimaryKey < x:
+            return FindPlaceOfRecord(arr, mid, r, x)
 
 
 def insert_Record_To_indexFile(Fields, TheindexFile, Type, MaxNumberOfRecordsPerPage):
@@ -487,11 +611,15 @@ def insert_Record_To_indexFile(Fields, TheindexFile, Type, MaxNumberOfRecordsPer
     index = 0
     PrimaryKey = Fields[0]
 
-    for RecordN in TheindexFile.Records:
+    index = FindPlaceOfRecord(
+        TheindexFile.Records, 0, TheindexFile.Number_OF_Records - 2, PrimaryKey
+    )
+
+    """for RecordN in TheindexFile.Records:
 
         if RecordN.PrimaryKey > PrimaryKey:
             break
-        index += 1
+        index += 1"""
 
     if index == 0:
 
@@ -548,5 +676,20 @@ with SystemCatalog() as f:
         lists2.append(PK)
         d2.Create_Record("5", [PK, 172, 45])
         index -= 1
-
+    """print("Before..........")
+    d2.Search_Record("5", 36)
     d2.Update_Record("5", [36, 7, 77])
+    print("After...........")
+    d2.Search_Record("5", 36)
+    d2.List_Records("5")
+"""
+    for Record in f.indexFiles["5"].Records:
+        print(
+            Record.FileID,
+            " ",
+            Record.PageID,
+            " ",
+            Record.RecordID,
+            " ",
+            Record.PrimaryKey,
+        )
