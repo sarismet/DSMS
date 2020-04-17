@@ -136,42 +136,35 @@ class SystemCatalog:
                         "B", FileOpen.read(1))[0]
                     PreviousFileinFileHeader = struct.unpack(
                         "B", FileOpen.read(1))[0]
-                    
+
                     Pages = []
-                    maxRecordNo=int(2048 / (4 * Fields_No))
-                   
+                    maxRecordNo = int(2048 / (4 * Fields_No))
+
                     for d in range(int(NumberOfPageinFileHeader)):
 
-                        
                         Records = []
 
-                        bandwidth=maxRecordNo*4*Fields_No+1
-                        
+                        bandwidth = maxRecordNo*4*Fields_No+1
 
-                        
-
-                        AllPage=FileOpen.read(bandwidth)
+                        AllPage = FileOpen.read(bandwidth)
                         NumberOfRecordsinPageHeader = struct.unpack(
                             "B", AllPage[:1]
                         )[0]
 
-                        indexN=0
-                        AllPage=AllPage[1:]
+                        indexN = 0
+                        AllPage = AllPage[1:]
 
-                        print("Page ",d+1," NumberOfRecordsinPageHeader",NumberOfRecordsinPageHeader)
-                        
                         while indexN < (NumberOfRecordsinPageHeader*4*Fields_No):
-                            
 
-                            
-                            Fields_Of_NewRecord=[]
+                            Fields_Of_NewRecord = []
                             for f in range(Fields_No):
                                 Fields_Of_NewRecord.append(
-                                                        int(struct.unpack(
-                                                            "i", AllPage[indexN:indexN+4])[0]))
-                                indexN=indexN+4
+                                    int(struct.unpack(
+                                        "i", AllPage[indexN:indexN+4])[0]))
+                                indexN = indexN+4
                             Records.append(Record(Fields_Of_NewRecord))
-                        Pages.append(Page(NumberOfRecordsinPageHeader, Records))
+                        Pages.append(
+                            Page(NumberOfRecordsinPageHeader, Records))
 
                     Files.append(
                         File(
@@ -506,6 +499,8 @@ class DML:
                         if self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID + 1].NumberOfRecords == 0:
                             self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID + 1].NextFile = 0
                             del self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID + 1]
+                            os.system("rm -rf ./Files/" + str(TypeName) +
+                                      str(main_indexFile.Records[index].FileID + 1))
                             self.SystemCatalog.Types[TypeName].NumberOfFiles -= 1
                             return
                         NumberOfPages = self.SystemCatalog.Types[TypeName].Files[
@@ -624,6 +619,7 @@ def FindRecord(arr, l, r, x):
 
     else:
         # Element is not present in the array
+        print("Primary Key : ", x, " is not found")
         return -1
 
 
@@ -731,4 +727,20 @@ with SystemCatalog() as f:
         old = PK
         lists2.append(PK)
         d2.Create_Record("5", [PK, 172, 45])
+        index -= 1
+
+    limit = 45000
+    index = limit
+    lists = []
+    for i in range(limit):
+        lists.append(i)
+    old = -1
+    lists2 = []
+    while index > 0:
+        PK = lists.pop(randrange(len(lists)))
+        if PK == old:
+            os._exit(0)
+        old = PK
+        lists2.append(PK)
+        d2.Delete_Record("5", PK)
         index -= 1
