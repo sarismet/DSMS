@@ -1,6 +1,7 @@
 import struct
 import re
 import os
+import sys
 import shutil
 from random import randrange
 
@@ -370,16 +371,17 @@ class DLL:
             else:
                 raise TypeDoesNotExists("Type'path does not exist so we cannot delete")
         else:
-            print(" The Type does not exists so we cannot delete")
+            print(" The Type",TypeName," does not exists so we cannot delete")
 
 
-    def List_All_Types(self):
+    def List_All_Types(self,outputFile):
         try:
             sorted_list_of_All_Types = sorted(self.SystemCatalog.Types)
             for Type in sorted_list_of_All_Types:
                 print(Type)
+                outputFile.write(str(Type)+"\n")
         except:
-            raise TypeDoesNotExists("Type does not exist so we cannot list records")
+            raise TypeDoesNotExists("There is no Type created exist so we cannot list")
 
 
 
@@ -637,7 +639,7 @@ class DML:
         )
         print("Update is completed")
 
-    def Search_Record(self, TypeName, PrimaryKey):
+    def Search_Record(self, TypeName, PrimaryKey,outputFile):
         Record = FindRecord(
             self.SystemCatalog.indexFiles[TypeName].Records,
             0,
@@ -654,16 +656,23 @@ class DML:
             .Records[RecordID]
             .Fields
         )
-        for i in range(len(Fields)):
-            print(i, "th Field is : ", Fields[i], " ", end="")
+        i=0
+        for Field in Fields:
+            print(i, "th Field is : ", Field, " ", end="")
+            outputFile.write(str(Field)+" ")
+            i+=1
+        outputFile.write("\n")
 
-    def List_Records(self, TypeName):
+    def List_Records(self, TypeName,outputFile):
 
         for File in self.SystemCatalog.Types[TypeName].Files:
             for Page in File.Pages:
                 for Record in Page.Records:
                     for Field in Record.Fields:
                         print("th Field is : ", Field, " ", end="")
+                        outputFile.write(str(Field)+" ")
+                    outputFile.write("\n")
+                        
 
 
 def Check_If_Type_Exits(TypeName, SystemCatalog):
@@ -768,68 +777,84 @@ def insert_Record_To_indexFile(Fields, TheindexFile, Type, MaxNumberOfRecordsPer
         Type.Files[FID].NumberOfRecords += 1
     return index
 
+inputFile=""
+outputFile=""
+
+if(len(sys.argv)>1):
+    inputFile=str(sys.argv[1])
+    outputFile=str(sys.argv[2])
 
 if not os.path.exists("indexFiles"):
     os.mkdir("indexFiles")
 
 if not os.path.exists("Files"):
     os.mkdir("Files")
+
 with SystemCatalog() as f:
 
     d1 = DLL(f)
 
     d2 = DML(f)
 
-    #d1.Create_Type("5", 10, ["age", "len", "spe","len","len","len","len","len","len","len"])  # 16
-    d1.Create_Type("8", 4, ["age", "len", "spe", "smell"])  # 18
-    d1.Create_Type("7", 3, ["age", "len", "spe"])  # 16
-    d1.Create_Type("8", 4, ["agex", "lenx", "spex", "prox"])  # 16
-    d1.Create_Type("1", 4, ["agex", "lenx", "spex", "prox"])  # 16
+    ReadingInputFile=open(inputFile,"r")
+    Lines=ReadingInputFile.readlines()
 
-    d1.Delete_Type("5")
-
-    d1.List_All_Types()
-
-    """limit = 45000
-    index = 17000
-    lists = []
-    lists2 = []
-    for i in range(limit):
-        lists.append(i)
-
-    while index > 0:
-        PK = lists.pop(randrange(len(lists)))
-        lists2.append(PK)
-        d2.Create_Record("5", [PK, 172, 45,1,2,3,4,5,6,7])
-        index -= 1
-
+    WritingOnOutFile=open(outputFile,"w")
     
-    index = 13500
+    for line in Lines:
+        lists=line.strip().split(" ")
+        Command=lists[0]+" "+lists[1]
+        if Command=="create type":
+            print("The command is create type")
+            try:
+                d1.Create_Type(lists[2],int(lists[3]),lists[4:])
+            except Exception as e:
+                print(e)
+        elif Command=="delete type":
+            print("The command is delete type")
+            try:
+                d1.Delete_Type(lists[2])
+            except Exception as e:
+                print(e)
+        elif Command=="list type":
+            print("The command is list type")
+            try:
+                d1.List_All_Types(WritingOnOutFile)
+            except Exception as e:
+                print(e)
+        elif Command=="create record":
+            print("The command is create record")
+            try:
+                Fields=[int(i) for i in lists[3:]]
+                d2.Create_Record(lists[2],Fields)
+            except Exception as e:
+                print(e)
+        elif Command=="delete record":
+            print("The command is delete record")
+            try:
+                d2.Delete_Record(lists[2],int(lists[3]))
+            except Exception as e:
+                print(e)
+        elif Command=="update record":
+            print("The command is update record")
+            try:
+                Fields=[int(i) for i in lists[3:]]
+                d2.Update_Record(lists[2],Fields)
+            except Exception as e:
+                print(e)
+        elif Command=="search record":
+            print("The command is search record")
+            try:
+                d2.Search_Record(lists[2],int(lists[3]),WritingOnOutFile)
+            except Exception as e:
+                print(e)
+        elif Command=="list record":
+            print("The command is list record")
+            try:
+                d2.List_Records(lists[2],WritingOnOutFile)
+            except Exception as e:
+                print(e)
 
-    
-    while index > 0:
-        PK = lists2.pop(randrange(len(lists2)))
-             
-        d2.Delete_Record("5", PK)
-        index -= 1
 
-
-
-    for Type in f.Types:
-        print("We are examine Type: ",Type)
-        print(" We have ",f.Types[Type].NumberOfFiles," number of Files")
-        file_no=0
-        for File in f.Types[Type].Files:
-            print("In File ",file_no, "we have ",File.NumberOfRecords," NumberOfRecords")
-            print("In File ",file_no, "we have ",File.NumberOfPages," NumberOfPages")
-            print("In File ",file_no, "our next file is",File.NextFile)
-            print("In File ",file_no, "our previous file is",File.PreviousFile)
-            print()
-            print("Now we are examine File",file_no,"' Pages")
-            page_no=0
-            for page in File.Pages:
-                print("Page :",page_no," we have ",page.NumberOfRecords,"NumberOfRecords")
-                page_no+=1
-            file_no+=1
-
-"""
+    ReadingInputFile.close()
+    WritingOnOutFile.close()

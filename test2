@@ -1,0 +1,11 @@
+list type
+list record Human
+create type cat 3 name age species
+create type baboon 2 name species
+list type
+list record cat
+search record cat 5
+delete type baboon
+delete type cat
+delete type Human
+search record Human 1
