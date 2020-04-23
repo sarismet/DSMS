@@ -559,58 +559,66 @@ class DML:
 
             index += 1
 
+    # we delete the record here by using TypeName and PrimaryKey 
     def Delete_Record(self, TypeName, PrimaryKey):
 
+        # we first detect the place of record in its indexFile. FindRecord funtion returns us the indexFile record and its index
         Returned_Tupple = FindRecord(
             self.SystemCatalog.indexFiles[TypeName].Records,
             0,
             len(self.SystemCatalog.indexFiles[TypeName].Records) - 1,
             PrimaryKey,
         )
+        # take the info of record
         Record = Returned_Tupple[0]
         FileID = Record.FileID
         PageID = Record.PageID
         RecordID = Record.RecordID
-
+        # delete the record in its file by using info gathered above
         del (
             self.SystemCatalog.Types[TypeName]
             .Files[FileID]
             .Pages[PageID]
             .Records[RecordID]
         )
-
+        # delete the record in its indexFile and decrease the number of records in indexFile by 1.
         self.SystemCatalog.indexFiles[TypeName].Number_OF_Records -= 1
         del self.SystemCatalog.indexFiles[TypeName].Records[Returned_Tupple[1]]
         index = Returned_Tupple[1]
 
+        # calculate the number of records per file and per page here
         MaxNumberOfRecordsPerFile = self.SystemCatalog.indexFiles[
             TypeName].Max_Number_OF_Records_Per_File
         MaxNumberOfRecordsPerPage = int(MaxNumberOfRecordsPerFile / 255)
         main_indexFile = self.SystemCatalog.indexFiles[TypeName]
 
+        # and we travese the all indexFile records list 
         while index < self.SystemCatalog.indexFiles[TypeName].Number_OF_Records:
-
+            #decrease the recordid by 1
             main_indexFile.Records[index].RecordID -= 1
+            # if it is -1 then we need to go previous page
             if main_indexFile.Records[index].RecordID == -1:
+                # assign max the record id 
                 main_indexFile.Records[index].RecordID = MaxNumberOfRecordsPerPage - 1
-
+                # and decrease the pageid by 1.
                 main_indexFile.Records[index].PageID -= 1
-
+                # if the page id is -1 then we need to go previous file
                 if main_indexFile.Records[index].PageID == -1:
-
+                    # assign 254 to page id since max page id can be 254
                     main_indexFile.Records[index].PageID = 254
+                    # and decrease the file id by 1
                     main_indexFile.Records[index].FileID -= 1
-
+                    # pop the first page's first record of next file and 
                     Record_poped = (
                         self.SystemCatalog.Types[TypeName]
                         .Files[main_indexFile.Records[index].FileID + 1]
                         .Pages[0]
                         .Records.pop(0)
                     )
-
+                    #append the popped record into the last page
                     self.SystemCatalog.Types[TypeName].Files[main_indexFile.Records[index].FileID].Pages[254].Records.append(
                         Record_poped)
-
+                # if we dont change the file then apply the same confiquration but this time use current file
                 elif main_indexFile.Records[index].PageID >= 0:
 
                     Record_poped = (
@@ -624,29 +632,35 @@ class DML:
                                                              .FileID].Pages[main_indexFile.Records[index].PageID].Records.append(Record_poped)
 
             index += 1
-
+        # after the loop we need to update the variables of data structures.
         indexF = len(f.Types[TypeName].Files)-1
-
+        # we starts with the last file
         while indexF >= 0:
-
+            # take the number of pages of old version file 
             indexP = f.Types[TypeName].Files[indexF].NumberOfPages-1
             NumberOfRecordOfFile = 0
+            # this bool variable is created to see if we have a record in a page. If so then we can asssign max number of records value to previous pages.
+            # when we have a record in a page this bool type will be true.
             flag_page = False
             while indexP >= 0:
+                # if it is false then see the size of records list in a page and assign the value to numberofrecords variable.
                 if flag_page == False:
                     NumberOfRecordOfPage = len(
                         f.Types[TypeName].Files[indexF].Pages[indexP].Records)
                     NumberOfRecordOfFile = NumberOfRecordOfFile+NumberOfRecordOfPage
+                    # if there is no record then delete the page 
                     if NumberOfRecordOfPage == 0:
                         del f.Types[TypeName].Files[indexF].Pages[indexP]
+                    # else make the flag_page bool variable true
                     else:
                         flag_page = True
                         f.Types[TypeName].Files[indexF].Pages[indexP].NumberOfRecords = NumberOfRecordOfPage
+                # if it is true then assign max number of record per page 
                 elif flag_page == True:
                     NumberOfRecordOfFile += MaxNumberOfRecordsPerPage
                     f.Types[TypeName].Files[indexF].Pages[indexP].NumberOfRecords = MaxNumberOfRecordsPerPage
                 indexP -= 1
-
+            #if the file has no records then delete and if it is not the first file cut the link between previous file.
             if NumberOfRecordOfFile == 0:
                 if f.Types[TypeName].Files[indexF].PreviousFile != 255:
                     f.Types[TypeName].Files[f.Types[TypeName]
@@ -661,16 +675,18 @@ class DML:
                     f.Types[TypeName].Files[indexF].Pages)
 
             indexF -= 1
-
+        # then update the number of files of the type.
         f.Types[TypeName].NumberOfFiles = len(f.Types[TypeName].Files)
-
+    # here we are updating the record by using TypeName and new Fields parameters
     def Update_Record(self, TypeName, new_Fields_Values):
+        # again we need to find the place of the record.
         Record = FindRecord(
             self.SystemCatalog.indexFiles[TypeName].Records,
             0,
             len(self.SystemCatalog.indexFiles[TypeName].Records) - 1,
             new_Fields_Values[0],
         )[0]
+        # take the informations of record
         FileID = Record.FileID
         PageID = Record.PageID
         RecordID = Record.RecordID
@@ -682,9 +698,11 @@ class DML:
             .Records[RecordID]
             .Fields,
         )
+        # go to the record in its file and use update fields function. This function just assign new fields array to previous fields array.
         self.SystemCatalog.Types[TypeName].Files[FileID].Pages[PageID].Records[
             RecordID
         ].Update_Fields(new_Fields_Values)
+        
         print(
             "After : ",
             self.SystemCatalog.Types[TypeName]
@@ -694,14 +712,16 @@ class DML:
             .Fields,
         )
         print("Update is completed")
-
+    # this is nearly the same as update record but we dont update the fields instead we write the fields on outputFile
     def Search_Record(self, TypeName, PrimaryKey, outputFile):
+        # find the location of record
         Record = FindRecord(
             self.SystemCatalog.indexFiles[TypeName].Records,
             0,
             len(self.SystemCatalog.indexFiles[TypeName].Records) - 1,
             PrimaryKey,
         )[0]
+        # get the infos of the record and
         FileID = Record.FileID
         PageID = Record.PageID
         RecordID = Record.RecordID
@@ -713,12 +733,13 @@ class DML:
             .Fields
         )
         i = 0
+        # print out the fields
         for Field in Fields:
             print(i, "th Field is : ", Field, " ", end="")
             outputFile.write(str(Field)+" ")
             i += 1
         outputFile.write("\n")
-
+    # we traverse the all files of type and print out the all fields
     def List_Records(self, TypeName, outputFile):
 
         for File in self.SystemCatalog.Types[TypeName].Files:
@@ -729,7 +750,7 @@ class DML:
                         outputFile.write(str(Field)+" ")
                     outputFile.write("\n")
 
-
+# this function is exactly the same as binary search.
 def FindRecord(Records, begin, end, PrimaryKey):
 
     # Check base case
@@ -754,9 +775,12 @@ def FindRecord(Records, begin, end, PrimaryKey):
         # Element is not present in the array
         raise RecordisNotFound("Primary Key : ", PrimaryKey, " is not found")
 
-
+# this function is nearly the same as binary search but if we have 1 or 2 size subarray then we nned to consider special cases.
 def FindPlaceOfRecord(Records, begin, end, PrimaryKey):
+    # if we have 1 size sub array then 
     if end == begin:
+        # we check if the given PrimaryKey is less then the Records[end].PrimaryKey
+        # if it is so then return the records index
         if Records[end].PrimaryKey > PrimaryKey:
            
             return end
@@ -764,6 +788,7 @@ def FindPlaceOfRecord(Records, begin, end, PrimaryKey):
         else:
             
             return end + 1
+    # if we have 2 size sub array we need to check if we can insert the primary key between them if not divide the 2 sub array with size 1 and keep recursive function.
     elif (end - begin) == 1:
         if Records[begin].PrimaryKey < PrimaryKey and Records[end].PrimaryKey > PrimaryKey:
             
@@ -772,10 +797,11 @@ def FindPlaceOfRecord(Records, begin, end, PrimaryKey):
             return FindPlaceOfRecord(Records, begin, begin, PrimaryKey)
         elif Records[end].PrimaryKey < PrimaryKey:
             return FindPlaceOfRecord(Records, end, end, PrimaryKey)
+    # The rest is the same as binary search
     elif end >= begin:
 
         mid = begin + (end - begin) // 2
-
+        # we always keep checking if we can insert the primary key between two record
         if Records[mid - 1].PrimaryKey < PrimaryKey and Records[mid].PrimaryKey > PrimaryKey:
             
             return mid
@@ -787,28 +813,31 @@ def FindPlaceOfRecord(Records, begin, end, PrimaryKey):
         elif Records[mid].PrimaryKey < PrimaryKey:
             return FindPlaceOfRecord(Records, mid, end, PrimaryKey)
 
-
+# here we insert the new created record in its indexFile and its normal file.
 def insert_Record_To_indexFile(Fields, TheindexFile, Type, MaxNumberOfRecordsPerPage):
     TheindexFile.Number_OF_Records += 1
 
     index = 0
     PrimaryKey = Fields[0]
-
+    # we first detect where we can insert the new record 
     index = FindPlaceOfRecord(
         TheindexFile.Records, 0, TheindexFile.Number_OF_Records - 2, PrimaryKey
     )
-
+    # if the index is 0 then we need to insert the new record in first file's first page's first record place
     if index == 0:
-
+        # after creating indexfile record and normal record insert it. 
         newRecord = Record_indexFile(0, 0, 0, PrimaryKey)
         TheindexFile.Records.insert(index, newRecord)
         Type.Files[0].Pages[0].Records.insert(0, Record(Fields))
+        # the first file is not full then we can increase the number of record variable 
         if Type.Files[0].NumberOfRecords < 255 * MaxNumberOfRecordsPerPage:
+            # the first page is not full then we can increase the number of record variable 
             if Type.Files[0].Pages[0].NumberOfRecords < MaxNumberOfRecordsPerPage:
                 Type.Files[0].Pages[0].NumberOfRecords += 1
             Type.Files[0].NumberOfRecords += 1
-
+        # we return 1 since we consider after the first record.
         return 1
+    # if the index is not 0 then we take the information previous record and return the index the other operations are like above.
     FID = TheindexFile.Records[index - 1].FileID
     PID = TheindexFile.Records[index - 1].PageID
     RID = TheindexFile.Records[index - 1].RecordID
@@ -822,49 +851,41 @@ def insert_Record_To_indexFile(Fields, TheindexFile, Type, MaxNumberOfRecordsPer
         Type.Files[FID].NumberOfRecords += 1
     return index
 
-
+# Here we take the names of input and output files
 inputFile = ""
 outputFile = ""
 
 if(len(sys.argv) > 1):
     inputFile = str(sys.argv[1])
     outputFile = str(sys.argv[2])
-
+# if we are executing the program at the first time then create these folder to store files and indexFiles in it.
 if not os.path.exists("indexFiles"):
     os.mkdir("indexFiles")
 
 if not os.path.exists("Files"):
     os.mkdir("Files")
-
+# here we create the SystemCatalog and assign it to f
 with SystemCatalog() as f:
-
+    # creating the DLL and DML
     d1 = DLL(f)
 
     d2 = DML(f)
-
+    # reading the inputfile
     ReadingInputFile = open(inputFile, "r")
+    # assign all the lines into Lines list.
     Lines = ReadingInputFile.readlines()
-
+    #opening output file.
     WritingOnOutFile = open(outputFile, "w")
 
     for line in Lines:
+        # divide the string by using white space delimeter
         lists = line.strip().split()
+        # determine the command
         Command = lists[0]+" "+lists[1]
         if Command == "create type":
             print("The command is create type")
             try:
                 d1.Create_Type(str(lists[2]), int(lists[3]), lists[4:])
-            
-                limit = 70000
-                index = limit
-                lists = []
-                for i in range(100,75000):
-                    lists.append(i)
-
-                while index > 0:
-                    PK = lists.pop(randrange(len(lists)))
-                    d2.Create_Record("Human", [PK, 172])
-                    index -= 1
 
             except:
                 print("In valid input")
@@ -884,6 +905,7 @@ with SystemCatalog() as f:
         elif Command == "create record":
             print("The command is create record")
             try:
+                # when we read the input it is string but we need integer so we need to convert them to int.
                 Fields = [int(i) for i in lists[3:]]
                 d2.Create_Record(str(lists[2]), Fields)
             except:
@@ -897,6 +919,7 @@ with SystemCatalog() as f:
         elif Command == "update record":
             print("The command is update record")
             try:
+                # when we read the input it is string but we need integer so we need to convert them to int.
                 Fields = [int(i) for i in lists[3:]]
                 d2.Update_Record(str(lists[2]), Fields)
             except:
